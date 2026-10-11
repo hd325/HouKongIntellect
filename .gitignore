@@ -1,0 +1,59 @@
+# Credentials and local configuration
+.env
+.env.*
+!.env.example
+*.local
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Runtime data, identities, sessions, uploads, and document indexes
+data/
+uploads/
+review_uploads/
+storage/
+chroma_db/
+chroma_db.*/
+users.json
+accounts.json
+*_data.json
+.reindex_ocr_cache.json
+*.sqlite
+*.sqlite3
+*.db
+logs/
+work/
+*.log
+
+# Python environments and caches
+.venv/
+.venv-*/
+venv/
+venv312/
+env/
+ENV/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Generated output and backups
+dist/
+build/
+*.egg-info/
+*.tmp
+*.bak
+*.backup
+*.swp
+*.zip
+node_modules/
+
+# Local editors and operating system metadata
+.idea/
+.vscode/
+.codebuddy/
+.workbuddy/
+.DS_Store
+Thumbs.db

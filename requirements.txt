@@ -1,0 +1,22 @@
+# Core application, Python 3.12 recommended.
+# Direct dependencies only; optional local neural models are separate.
+fastapi>=0.139.2,<0.140
+uvicorn>=0.51,<0.52
+pydantic>=2.10.6,<3
+httpx>=0.28.1,<0.29
+python-dotenv>=1.2.2,<2
+python-multipart>=0.0.32,<0.1
+requests>=2.34.2,<3
+chromadb>=1.5.9,<1.6
+PyMuPDF>=1.24.14,<2
+python-docx>=1.2,<2
+python-pptx>=1.0.2,<2
+openpyxl>=3.1.5,<4
+# Official modular SDKs; compatible common dependency verified in PyPI metadata.
+# Do not also install the all-products tencentcloud-sdk-python package.
+tencentcloud-sdk-python-common==3.1.187
+tencentcloud-sdk-python-ocr==3.1.187
+tencentcloud-sdk-python-hunyuan==3.1.180
+zhconv==1.4.3
+jieba==0.42.1
+rank-bm25==0.2.2

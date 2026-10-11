@@ -1,0 +1,4 @@
+# Optional offline neural embeddings. Install after requirements.txt.
+sentence-transformers>=5.6,<6
+# Downloading model weights requires network access during explicit setup only.
+huggingface-hub>=0.36,<1
