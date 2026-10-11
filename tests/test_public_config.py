@@ -24,7 +24,9 @@ CONFIG_KEYS = (
 class PublicConfigurationTests(unittest.TestCase):
     def setUp(self):
         self.folder = tempfile.TemporaryDirectory(prefix="houkong_config_")
-        self.base = Path(self.folder.name)
+        # Windows runners may expose TEMP through an 8.3 alias. Compare the
+        # canonical fixture location with settings' resolved storage paths.
+        self.base = Path(self.folder.name).resolve()
         self.app = self.base / "app"
         (self.app / "config").mkdir(parents=True)
         (self.app / "config" / "__init__.py").write_text("", encoding="utf-8")
