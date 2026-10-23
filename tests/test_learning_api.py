@@ -17,6 +17,7 @@ from uuid import uuid4
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+import tests  # Establish synthetic-only storage before application imports.
 import main
 from tests.account_fixtures import fixture_accounts
 from services.document_files import stable_upload_id
@@ -25,6 +26,7 @@ from services.quiz_service import QuizGenerationError, QuizValidationError, vali
 
 class _MemorySessionsAndFiles:
     def __init__(self):
+        self._deleted_document_ids = set()
         self.files = {}
         self.sessions = {"test-session": {"account": "student-test", "created_at": datetime.now().isoformat()}}
         self.delete_session = AsyncMock()
@@ -38,6 +40,9 @@ class _MemorySessionsAndFiles:
 
 class LearningApiTests(unittest.TestCase):
     def setUp(self):
+        _accounts = patch.dict(main.VALID_ACCOUNTS, fixture_accounts())
+        _accounts.start()
+        self.addCleanup(_accounts.stop)
         self.folder = tempfile.TemporaryDirectory(prefix="hk_learning_api_")
         self.root = Path(self.folder.name)
         self.uploads = self.root / "uploads"
@@ -140,7 +145,7 @@ class LearningApiTests(unittest.TestCase):
                 self.assertIn("filename*=UTF-8''", response.headers["content-disposition"])
                 self.assertNotIn(document_id, response.headers["content-disposition"])
                 self.assertEqual(response.headers["x-content-type-options"], "nosniff")
-                self.assertEqual(response.headers["cache-control"], "private, no-cache")
+                self.assertEqual(response.headers["cache-control"], "no-store")
                 self.assertIn("sandbox", response.headers["content-security-policy"])
         self.generate.assert_not_awaited()
 
@@ -254,11 +259,15 @@ class FrontendStaticBoundaryTests(unittest.TestCase):
     """Exercise actual existing fixtures through the production static class."""
 
     PUBLIC = {"tailwindcss.js", "marked.js", "pdf.min.js", "pdf.worker.min.js",
-              "font-awesome.css", "logo.png", "fonts/fontawesome-webfont.woff2"}
+              "font-awesome.css", "logo.png", "fonts/fontawesome-webfont.woff2",
+              "dompurify.min.js", "tailwind.generated.css"}
     PRIVATE = ("uploads/known.png", "main.py", "config/settings.py", "sessions_data.json",
                "files_data.json", "conversations_data.json", "work/log", "work/rag_metrics.jsonl")
 
     def setUp(self):
+        _accounts = patch.dict(main.VALID_ACCOUNTS, fixture_accounts())
+        _accounts.start()
+        self.addCleanup(_accounts.stop)
         self.folder = tempfile.TemporaryDirectory(prefix="hk_static_boundary_")
         self.root = Path(self.folder.name)
         self.fixture = b"temporary-static-contract-fixture"
@@ -274,7 +283,7 @@ class FrontendStaticBoundaryTests(unittest.TestCase):
         self.client.close()
         self.folder.cleanup()
 
-    def test_production_mount_uses_exact_seven_asset_allowlist(self):
+    def test_production_mount_uses_exact_asset_allowlist(self):
         mounts = [route for route in main.app.routes if getattr(route, "path", None) == "/static"]
         self.assertEqual(len(mounts), 1)
         self.assertIsInstance(mounts[0].app, main.FrontendStaticFiles)

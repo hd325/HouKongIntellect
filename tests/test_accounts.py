@@ -10,6 +10,7 @@ from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
 
+import tests  # Establish synthetic-only storage before application imports.
 import main
 from services.accounts import create_account_record, load_accounts, save_accounts, verify_password_record
 from scripts import init_accounts
@@ -71,7 +72,7 @@ class AccountApiTests(unittest.TestCase):
                    "100synthetic": create_account_record(TEST_PASSWORD, class_name="測試班")}
         self.sessions = {}
 
-        async def set_session(session_id, data):
+        async def set_session(session_id, data, **_kwargs):
             self.sessions[session_id] = data
 
         self.accounts = patch.dict(main.VALID_ACCOUNTS, records, clear=True)

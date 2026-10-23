@@ -15,18 +15,22 @@ Chroma 向量库封装 + 索引编排（knowledge_chunks 集合）
 import logging
 import os
 import shutil
+import threading
 import uuid
 from pathlib import Path
+from chromadb.config import Settings
 from typing import Dict, List, Optional
 
-from config.settings import CHROMA_DIR as CONFIGURED_CHROMA_DIR
+import chromadb
 from services.chunker import PageAwareChunker
-from services.knowledge.embedder import get_embedder
+from services.knowledge.embedder import LocalEmbedder, TfidfEmbedder, get_embedder
 from services.review_policy import is_published_record
 
 logger = logging.getLogger("vector_store")
 
-# The public copy uses its own configured store, never the private application's.
+# 项目目录可能包含中文。Chroma 1.5.x 的 Windows Rust/HNSW 后端在非 ASCII
+# 持久化路径下会写入成功、但进程重开时报 "Error loading hnsw index"。
+from config.settings import CHROMA_DIR as CONFIGURED_CHROMA_DIR
 CHROMA_DIR = str(CONFIGURED_CHROMA_DIR)
 
 # 图片扩展名（需包裹为单页）
@@ -78,11 +82,7 @@ class VectorStore:
 
         os.makedirs(persist_dir, exist_ok=True)
         self._persist_dir = persist_dir
-        from chromadb.config import Settings
-
-        self._client = chromadb.PersistentClient(
-            path=persist_dir, settings=Settings(anonymized_telemetry=False)
-        )
+        self._client = chromadb.PersistentClient(path=persist_dir, settings=Settings(anonymized_telemetry=False))
         self._embedder = get_embedder()
         # In-process generation used by the hybrid retriever to refresh its
         # cached BM25 corpus whenever this store is mutated.
@@ -147,13 +147,12 @@ class VectorStore:
         for c in chunks:
             metas.append({k: c.get(k) for k in _META_FIELDS if c.get(k) is not None})
 
-        embeddings = self._embedder.embed(docs)
-        self._collection.upsert(
-            ids=ids,
-            documents=docs,
-            metadatas=metas,
-            embeddings=embeddings,
-        )
+        # Limit Python float/vector expansion even for fragmented text.
+        for offset in range(0, len(docs), 32):
+            end = offset + 32
+            embeddings = self._embedder.embed(docs[offset:end])
+            self._collection.upsert(ids=ids[offset:end], documents=docs[offset:end],
+                                    metadatas=metas[offset:end], embeddings=embeddings)
         self._index_revision += 1
         logger.info(
             f"✅ 入库完成: {filename} → {len(chunks)} 块 (backend={self._embedder.name})"
@@ -164,70 +163,8 @@ class VectorStore:
     # 批量重建（无 delete，规避 HNSW tombstone 重开损坏）
     # ------------------------------------------------------------------
     def bulk_index_documents(self, items: List) -> int:
-        """
-        批量切块→向量化→入库，用于全量重建。
-
-        ⚠️ 与 index_document 不同：本方法**不调用 delete_by_document**。
-        原因：chromadb 1.5.x 在 HNSW 集合上执行 delete（产生 tombstone）后，
-        下次重开集合时极易触发 "Error loading hnsw index" 损坏，导致整个集合不可用。
-        全量重建场景下，通过「先清空 chroma_db 或 upsert 同 id 覆盖」即可保证幂等，
-        无需 delete。
-
-        items: List of (file_info: dict, content: str)
-               file_info 需含 id/name/owner/audience/subject（与 index_document 同义）
-        返回：新增/更新的块总数。
-        """
-        chunker = PageAwareChunker()
-        all_ids: List[str] = []
-        all_docs: List[str] = []
-        all_metas: List[Dict[str, object]] = []
-
-        for file_info, content in items:
-            if not is_published_record(file_info):
-                continue
-            if not content or not content.strip():
-                continue
-            document_id = file_info.get("id")
-            filename = file_info.get("name") or file_info.get("original_name") or ""
-            ext = os.path.splitext(filename)[1].lower()
-            indexed_text = (
-                f"--- 第1页 ---\n{content}"
-                if ext in _IMAGE_EXT and "--- 第" not in content
-                else content
-            )
-            extra_meta = _index_metadata(file_info)
-            chunks = chunker.chunk(
-                indexed_text,
-                document_id=document_id,
-                filename=filename,
-                extra_meta=extra_meta,
-            )
-            for c in chunks:
-                all_ids.append(c["chunk_id"])
-                all_docs.append(c["content"])
-                all_metas.append({k: c.get(k) for k in _META_FIELDS if c.get(k) is not None})
-
-        if not all_ids:
-            return 0
-
-        # 分批 upsert（避免单次超大数据包），相同 chunk_id 自然覆盖，保证幂等
-        BATCH = 1000
-        for i in range(0, len(all_ids), BATCH):
-            batch_ids = all_ids[i : i + BATCH]
-            batch_docs = all_docs[i : i + BATCH]
-            batch_metas = all_metas[i : i + BATCH]
-            batch_emb = self._embedder.embed(batch_docs)
-            self._collection.upsert(
-                ids=batch_ids,
-                documents=batch_docs,
-                metadatas=batch_metas,
-                embeddings=batch_emb,
-            )
-        self._index_revision += 1
-        logger.info(
-            f"✅ 批量入库完成：{len(all_ids)} 块 (backend={self._embedder.name})"
-        )
-        return len(all_ids)
+        """Process one bounded document at a time, never retain corpus vectors."""
+        return sum(self.index_document(file_info, content) for file_info, content in items)
 
     # ------------------------------------------------------------------
     # 检索
@@ -309,6 +246,7 @@ class VectorStore:
         )
         self._index_revision += 1
         logger.info(f"🆕 已重建空集合: {self._collection_name}")
+
 
     def delete_by_document(self, document_id: str) -> int:
         try:
@@ -445,15 +383,90 @@ class VectorStore:
 # 单例 + 工具
 # ----------------------------------------------------------------------
 _STORE: "VectorStore | None" = None
+_CATALOG_STORE = None
+_CATALOG_KEY = None
+_CATALOG_LOCK = threading.Lock()
 
 
-def get_vector_store() -> VectorStore:
+class _EmptyCatalogCollection:
+    def get(self, **_kwargs):
+        return {"ids": [], "documents": [], "metadatas": []}
+
+    def count(self):
+        return 0
+
+
+class _CatalogStore:
+    """Metadata-only view: it cannot embed, create collections, or write vectors."""
+
+    def __init__(self, client, collection, *, backend=LocalEmbedder.name, dim=LocalEmbedder.dim):
+        self._client = client
+        self._collection = collection
+        self._index_revision = 0
+        self._backend = backend
+        self._dim = dim
+
+    def stats(self):
+        """Describe the selected catalog without initializing an embedding model."""
+        return {
+            "backend": self._backend,
+            "dim": self._dim,
+            "collection": f"hk_knowledge_{self._backend}_{self._dim}",
+            "total_chunks": self._collection.count(),
+        }
+
+
+def _get_catalog_store():
+    global _CATALOG_STORE, _CATALOG_KEY
+    # Local model identity is declared on the class and does not require loading
+    # torch/model weights. Keep auto/cloud fallback selection in the real factory.
+    if os.environ.get("EMBEDDING_BACKEND", "tfidf").lower() != LocalEmbedder.name:
+        return None
+    collection_name = f"hk_knowledge_{LocalEmbedder.name}_{LocalEmbedder.dim}"
+    key = (CHROMA_DIR, collection_name)
+    with _CATALOG_LOCK:
+        if _CATALOG_STORE is not None and _CATALOG_KEY == key:
+            return _CATALOG_STORE
+        # An unindexed installation has an empty catalog; do not create a database.
+        if not os.path.isfile(os.path.join(CHROMA_DIR, "chroma.sqlite3")):
+            return _CatalogStore(None, _EmptyCatalogCollection())
+        client = chromadb.PersistentClient(path=CHROMA_DIR, settings=Settings(anonymized_telemetry=False))
+        try:
+            collection = client.get_collection(name=collection_name, embedding_function=None)
+        except chromadb.errors.NotFoundError:
+            # The local factory's only fallback is TF-IDF. Its constructor only
+            # declares dimensions; no embedding/probe or model loading occurs.
+            fallback = TfidfEmbedder()
+            fallback_name = f"hk_knowledge_{fallback.name}_{fallback.dim}"
+            try:
+                collection = client.get_collection(name=fallback_name, embedding_function=None)
+            except chromadb.errors.NotFoundError:
+                return _CatalogStore(client, _EmptyCatalogCollection())
+            # Recheck local availability next time: an external indexer may
+            # create the preferred collection after this fallback was opened.
+            return _CatalogStore(client, collection, backend=fallback.name, dim=fallback.dim)
+        _CATALOG_STORE = _CatalogStore(client, collection)
+        _CATALOG_KEY = key
+        return _CATALOG_STORE
+
+
+def get_vector_store(*, catalog_only: bool = False) -> "VectorStore | _CatalogStore":
     global _STORE
+    # Once RAG initializes, its chosen backend and mutation revision are the
+    # authority, including a backend fallback selected by get_embedder().
+    if _STORE is not None:
+        return _STORE
+    if catalog_only:
+        catalog = _get_catalog_store()
+        if catalog is not None:
+            return catalog
     if _STORE is None:
         _STORE = VectorStore()
     return _STORE
 
 
 def reset_vector_store() -> None:
-    global _STORE
+    global _STORE, _CATALOG_STORE, _CATALOG_KEY
     _STORE = None
+    _CATALOG_STORE = None
+    _CATALOG_KEY = None

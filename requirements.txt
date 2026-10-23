@@ -20,3 +20,10 @@ tencentcloud-sdk-python-hunyuan==3.1.180
 zhconv==1.4.3
 jieba==0.42.1
 rank-bm25==0.2.2
+huaweicloudsdkcore==3.1.218
+huaweicloudsdkocr==3.1.218
+# Security floor for the transitive image dependency.
+Pillow>=13.0.0,<14
+# Huawei SDK currently requires <=0.6.3. Only local SDK signatures reach its
+# ASN.1 helpers; uploaded documents never enter an ASN.1 decoder. See SECURITY.md.
+pyasn1==0.6.3

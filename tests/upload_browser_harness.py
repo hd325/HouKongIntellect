@@ -21,14 +21,17 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 
+from unittest.mock import AsyncMock, patch
+import tests  # Establish synthetic-only storage before application imports.
 import main
-from services.accounts import create_account_record
+from tests.account_fixtures import fixture_accounts
 from services.upload_analysis import UploadAnalysisError, blank_classification
 
 
 class FixtureStore:
     def __init__(self):
         self._files = []
+        self._deleted_document_ids = set()
         self.contents = {}
         self.sessions = {"browser-fixture": {"account": "fixture-user", "created_at": datetime.now().isoformat()}}
 
@@ -75,6 +78,11 @@ async def no_index(record, content):
     return None
 
 
+async def fixture_parse(file, *, progress_callback=None, retry=True):
+    return await asyncio.to_thread(fixture_extract, file,
+                                   progress_callback=progress_callback, retry=retry)
+
+
 def page():
     source = (Path(__file__).resolve().parents[1] / "index.html").read_text(encoding="utf-8")
     style = re.search(r"<style>(.*?)</style>", source, re.S).group(1)
@@ -87,7 +95,10 @@ def page():
     script = """
         let sessionId = 'browser-fixture', logoutInProgress = false;
         const API_BASE = location.origin + '/api';
+        localStorage.setItem('userInfo', JSON.stringify({account:'fixture-user',role:'student',class:'測試班'}));
         function formatFileSize(size) { return size + ' B'; }
+        function showToast(message) { document.getElementById('fixture-result').textContent = message; }
+        function refreshReviewPanel() {}
         async function loadFiles() {
             const result = await (await fetch('/fixture/results')).json();
             document.getElementById('fixture-result').textContent = JSON.stringify(result);
@@ -113,12 +124,14 @@ def run():
     with tempfile.TemporaryDirectory(prefix="hk_upload_browser_") as folder:
         root = Path(folder)
         (root / "uploads").mkdir()
-        main.data_store = FixtureStore()
+        (root / "review_uploads").mkdir()
         main.VALID_ACCOUNTS.clear()
-        main.VALID_ACCOUNTS["fixture-user"] = create_account_record("fixture-only-password", name="測試學生")
+        main.VALID_ACCOUNTS.update(fixture_accounts())
+        main.data_store = FixtureStore()
         main.UPLOAD_DIR = str(root / "uploads")
+        main.REVIEW_UPLOAD_DIR = str(root / "review_uploads")
         main.DATA_DIR = str(root)
-        main.extract_text_from_file = fixture_extract
+        main.parse_upload_isolated = fixture_parse
         main.classify_upload = fixture_classify
         main._index_file_background = no_index
         fixture_app = FastAPI()

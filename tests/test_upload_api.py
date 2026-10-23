@@ -10,16 +10,19 @@ from datetime import datetime
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
+import httpx
 from fastapi.testclient import TestClient
 
+import tests  # Establish synthetic-only storage before application imports.
 import main
 from tests.account_fixtures import fixture_accounts
-from services.upload_analysis import UploadAnalysisError
+from services.upload_analysis import UploadAnalysisError, blank_classification, classify_upload
 
 
 class MemoryUploadStore:
     def __init__(self):
         self._files = []
+        self._deleted_document_ids = set()
         self.contents = {}
         self.sessions = {"upload-test": {"account": "student-test", "created_at": datetime.now().isoformat()}}
         self.fail_save = False
@@ -48,6 +51,9 @@ class MemoryUploadStore:
 
 class UploadApiTests(unittest.TestCase):
     def setUp(self):
+        _accounts = patch.dict(main.VALID_ACCOUNTS, fixture_accounts())
+        _accounts.start()
+        self.addCleanup(_accounts.stop)
         self.folder = tempfile.TemporaryDirectory(prefix="hk_upload_api_")
         self.root = Path(self.folder.name)
         self.uploads = self.root / "uploads"
@@ -62,7 +68,7 @@ class UploadApiTests(unittest.TestCase):
                         patch.dict(main.VALID_ACCOUNTS, fixture_accounts(), clear=True),
                         patch.object(main, "UPLOAD_DIR", str(self.uploads)),
                         patch.object(main, "DATA_DIR", str(self.root)),
-                        patch.object(main, "extract_text_from_file", self.extract),
+                        patch.object(main, "parse_upload_isolated", AsyncMock(side_effect=self.extract)),
                         patch.object(main, "classify_upload", self.classify),
                         patch.object(main, "study_period_for_month", return_value="first"),
                         patch.object(main, "_index_file_background", self.index),
@@ -88,9 +94,9 @@ class UploadApiTests(unittest.TestCase):
         return {"content": file.file.read().decode("utf-8"), "page_count": 2,
                 "extraction_status": "success", "error": ""}
 
-    def analyze(self, raw=None, headers=None):
+    def analyze(self, raw=None, headers=None, filename="lesson.txt", content_type="text/plain"):
         response = self.client.post("/api/upload/analyze", headers=self.headers if headers is None else headers,
-                                    files={"file": ("lesson.txt", self.raw if raw is None else raw, "text/plain")})
+                                    files={"file": (filename, self.raw if raw is None else raw, content_type)})
         self.assertEqual(response.status_code, 200)
         events = [json.loads(line) for line in response.text.splitlines() if line.strip()]
         result = next(event["data"] for event in events if event["type"] == "result")
@@ -113,6 +119,7 @@ class UploadApiTests(unittest.TestCase):
         self.assertEqual([event["completed"] for event in events if event["type"] == "ocr_progress"], [1, 2])
         self.assertEqual(result["study_period"], "first")
         self.assertEqual(result["notes"], "")
+        self.assertEqual(result["audience"], "")
         self.assertEqual(result["extraction"]["page_count"], 2)
         self.assertFalse(result["possible_duplicate"])
         self.assertNotIn("draft_id", response.text)
@@ -122,17 +129,57 @@ class UploadApiTests(unittest.TestCase):
         self.assertEqual(list(self.uploads.iterdir()), [])
         self.index.assert_not_awaited()
 
+    def test_school_calendar_analysis_returns_suggestions_without_saving_or_publishing(self):
+        model = {**blank_classification(), "material_type": "other",
+                 "material_custom": "校曆", "notes": "校曆"}
+        requests = []
+        original_client = httpx.AsyncClient
+
+        def respond(request):
+            requests.append(request)
+            return httpx.Response(200, json={"choices": [{"finish_reason": "stop", "message": {
+                "content": json.dumps(model),
+            }}]})
+
+        calendar = "濠江中學2026學年學生校曆\n9月開學、全校師生假期及考試安排".encode("utf-8")
+        with patch.object(main, "classify_upload", classify_upload), \
+                patch.object(main, "API_CONFIG", {"DEEPSEEK_API_KEY": "offline-test-key",
+                                                 "DEEPSEEK_API_URL": "https://offline.invalid/classify"}), \
+                patch("services.upload_analysis.httpx.AsyncClient", side_effect=lambda **kwargs:
+                      original_client(transport=httpx.MockTransport(respond), **kwargs)):
+            _, _, result = self.analyze(raw=calendar, filename="2026學年學生校曆(1).pdf",
+                                        content_type="application/pdf")
+        self.assertEqual({key: result[key] for key in (*model, "audience")}, {
+            **model, "study_period": "first", "subject": "other", "notes": "", "audience": "school",
+        })
+        self.assertEqual(len(requests), 1)
+        self.assertEqual(self.extraction_calls, [("2026學年學生校曆(1).pdf", False)])
+        self.assertTrue(result["extraction_signature"])
+        self.assertEqual(self.store._files, [])
+        self.assertEqual(list(self.uploads.iterdir()), [])
+        self.index.assert_not_awaited()
+
+    def test_school_audience_suggestion_does_not_override_final_manual_choice(self):
+        self.suggestions["audience"] = "school"
+        _, _, result = self.analyze()
+        self.assertEqual(result["audience"], "school")
+        self.assertEqual(self.store._files, [])
+        response = self.upload(result, audience="personal")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.store._files[0]["audience"], "personal")
+
     def test_ai_failure_is_silent_keeps_system_period_and_signs_extraction(self):
         self.classify.side_effect = UploadAnalysisError("mock upstream failure")
         _, events, result = self.analyze()
         self.assertTrue(all(result[field] == "" for field in self.suggestions if field != "study_period"))
         self.assertEqual(result["study_period"], "first")
+        self.assertEqual(result["audience"], "")
         self.assertFalse(any(event["type"] in ("error", "failed") for event in events))
         self.assertTrue(result["extraction_signature"])
         self.assertEqual(self.classify.await_count, 1)
 
     def test_ocr_failure_is_silent_and_never_calls_the_model(self):
-        with patch.object(main, "extract_text_from_file", side_effect=RuntimeError("mock OCR failure")):
+        with patch.object(main, "parse_upload_isolated", new=AsyncMock(side_effect=RuntimeError("mock OCR failure"))):
             _, events, result = self.analyze()
         self.assertEqual(result["extraction"]["extraction_status"], "failed")
         self.assertEqual(result["extraction"]["content"], "")
@@ -143,6 +190,16 @@ class UploadApiTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(self.store.contents[self.store._files[0]["id"]], "")
         self.index.assert_not_awaited()
+
+    def test_resource_limit_is_explicit_and_never_signed_as_valid_extraction(self):
+        from services.resource_limits import ParserLimitError
+        with patch.object(main, "parse_upload_isolated", new=AsyncMock(side_effect=ParserLimitError("PDF 最多允許 50 頁"))):
+            response = self.client.post('/api/upload/analyze', headers=self.headers,
+                files={'file': ('synthetic.pdf', b'synthetic fixture')})
+        events = [json.loads(line) for line in response.text.splitlines() if line.strip()]
+        self.assertEqual(events[-1], {'type': 'error', 'code': 413, 'detail': 'PDF 最多允許 50 頁'})
+        self.assertFalse(any(event['type'] == 'result' for event in events))
+        self.classify.assert_not_awaited()
 
     def test_system_period_overrides_document_and_model_period(self):
         self.suggestions["study_period"] = "third"
@@ -243,6 +300,7 @@ class UploadPersistenceTests(unittest.IsolatedAsyncioTestCase):
     async def test_real_store_rolls_back_when_disk_write_fails(self):
         store = main.DataStore.__new__(main.DataStore)
         store._sessions, store._conversations, store._files, store._file_contents = {}, {}, [], {}
+        store._deleted_document_ids = set()
         store._lock, store._persist_lock = asyncio.Lock(), asyncio.Lock()
         with patch.object(store, "_write_json", side_effect=OSError("mock disk failure")), patch("main.logging.error"):
             with self.assertRaises(OSError):

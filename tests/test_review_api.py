@@ -13,12 +13,16 @@ from unittest.mock import AsyncMock, Mock, patch
 
 from fastapi.testclient import TestClient
 
+import tests  # Establish synthetic-only storage before application imports.
 import main
 from tests.account_fixtures import fixture_accounts
 
 
 class ReviewApiTests(unittest.TestCase):
     def setUp(self):
+        _accounts = patch.dict(main.VALID_ACCOUNTS, fixture_accounts())
+        _accounts.start()
+        self.addCleanup(_accounts.stop)
         self.folder = tempfile.TemporaryDirectory(prefix="hk_review_api_")
         self.root = Path(self.folder.name)
         self.uploads = self.root / "uploads"
@@ -42,7 +46,7 @@ class ReviewApiTests(unittest.TestCase):
             patch.object(main, "CONVERSATIONS_FILE", str(self.records_path)),
             patch.object(main, "SESSIONS_FILE", str(self.sessions_path)),
             patch.object(main, "_index_file_background", self.index),
-            patch.object(main, "extract_text_from_file", self.extract),
+            patch.object(main, "parse_upload_isolated", AsyncMock(side_effect=self.extract)),
             patch("services.knowledge.vector_store.get_vector_store", return_value=self.vector),
             patch("main.logging.info"), patch("main.logging.warning"), patch("main.logging.error"),
             patch.dict(main.VALID_ACCOUNTS, fixture_accounts(), clear=True),

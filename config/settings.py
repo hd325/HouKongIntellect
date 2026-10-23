@@ -60,12 +60,23 @@ DEEPSEEK_API_KEY = _string("DEEPSEEK_API_KEY")
 DEEPSEEK_API_URL = _string(
     "DEEPSEEK_API_URL", "https://api.deepseek.com/chat/completions"
 )
-DEEPSEEK_MODEL = _string("DEEPSEEK_MODEL", "deepseek-chat")
-DEEPSEEK_REASONING_MODEL = _string("DEEPSEEK_REASONING_MODEL", "deepseek-reasoner")
+DEEPSEEK_MODEL = _string("DEEPSEEK_MODEL", "deepseek-flash")
+DEEPSEEK_REASONING_MODEL = _string("DEEPSEEK_REASONING_MODEL", "deepseek-flash")
 TENCENT_SECRET_ID = _string("TENCENT_SECRET_ID")
 TENCENT_SECRET_KEY = _string("TENCENT_SECRET_KEY")
 TENCENT_OCR_REGION = _string("TENCENT_OCR_REGION", "ap-guangzhou")
 SERPER_API_KEY = _string("SERPER_API_KEY")
+HUAWEI_AK = _string("HUAWEI_AK")
+HUAWEI_SK = _string("HUAWEI_SK")
+HUAWEI_PROJECT_ID = _string("HUAWEI_PROJECT_ID")
+HUAWEI_OCR_REGION = _string("HUAWEI_OCR_REGION", "cn-north-4")
+ENABLE_FILE_AGENT = _boolean("ENABLE_FILE_AGENT", False)
+PARSER_TIMEOUT = 120
+MAX_FILE_TASKS = 1
+
+
+def is_huawei_ocr_configured() -> bool:
+    return bool(HUAWEI_AK and HUAWEI_SK)
 
 # The default needs no model download, torch installation, or external API.
 EMBEDDING_BACKEND = _string("EMBEDDING_BACKEND", "tfidf").lower()

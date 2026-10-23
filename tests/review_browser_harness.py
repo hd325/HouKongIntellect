@@ -22,8 +22,10 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 
+from unittest.mock import AsyncMock, patch
+import tests  # Establish synthetic-only storage before application imports.
 import main
-from services.accounts import create_account_record
+from tests.account_fixtures import fixture_accounts
 
 
 CHECKOUT = Path(__file__).resolve().parents[1]
@@ -50,6 +52,11 @@ def fixture_extract(file, *, progress_callback=None, retry=True):
     raw = file.file.read()
     return {"content": raw.decode("utf-8", errors="replace"), "page_count": 1,
             "extraction_status": "success", "error": ""}
+
+
+async def fixture_parse(file, *, progress_callback=None, retry=True):
+    return await asyncio.to_thread(fixture_extract, file,
+                                   progress_callback=progress_callback, retry=retry)
 
 
 def fixture_page(role):
@@ -111,14 +118,13 @@ def run():
         main.SESSIONS_FILE = str(root / "sessions.json")
         main.UPLOAD_DIR = str(root / "uploads")
         main.REVIEW_UPLOAD_DIR = str(root / "review_uploads")
+        accounts = fixture_accounts()
+        accounts["review-fixture-student"] = accounts["review-student"].copy()
+        accounts["review-fixture-other"] = accounts["review-other"].copy()
         main.VALID_ACCOUNTS.clear()
-        main.VALID_ACCOUNTS.update({
-            "fixture-teacher-0": create_account_record("fixture-only-password", name="測試老師", role="teacher"),
-            "review-fixture-student": create_account_record("fixture-only-password", name="測試學生甲", class_name="高二9班", grade="高二"),
-            "review-fixture-other": create_account_record("fixture-only-password", name="測試學生乙", class_name="高二9班", grade="高二"),
-        })
+        main.VALID_ACCOUNTS.update(accounts)
         main.data_store = seed_store(root)
-        main.extract_text_from_file = fixture_extract
+        main.parse_upload_isolated = fixture_parse
         main.classify_upload = fixture_classify
         main._index_file_background = no_index
         from services.knowledge import vector_store

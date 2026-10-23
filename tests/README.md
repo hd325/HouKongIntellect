@@ -4,6 +4,7 @@
 
 ```bash
 python -m pip install -r requirements-dev.txt
+python -m pip install -r requirements-file-agent.txt
 python -m unittest discover -s tests
 ```
 
@@ -17,7 +18,7 @@ Windows PowerShell 未啟用虛擬環境時，將 `python` 改為 `.\.venv\Scrip
 - 文件目錄、索引可見範圍、檢索回退和文件引用。
 - 出題參數、模型 JSON、原文依據與來源頁，以及檢索統計。
 
-測試使用合成帳號、臨時文件、模擬模型和模擬向量庫，不需要雲端密鑰。請在乾淨的公開版環境執行；測試案例會各自隔離需要寫入的記錄，應用匯入時仍會建立配置的資料目錄。
+測試使用合成帳號、臨時文件、模擬模型和模擬向量庫，不需要雲端密鑰。測試啟動器會在匯入應用前清空供應商密鑰，並把資料與向量庫改到新建的臨時目錄；結束時清理。請在新的 Python 程序執行測試，勿在已匯入正式應用的互動程序中匯入測試。
 
 ## 瀏覽器測試資料
 

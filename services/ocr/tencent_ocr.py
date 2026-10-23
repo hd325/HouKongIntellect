@@ -159,7 +159,7 @@ class TencentOCR:
             識別出的文本；預設容許部分頁面失敗，retry=False 時失敗即拋出 OCRRecognitionError
         """
         try:
-            import fitz  # PyMuPDF
+            import pymupdf as fitz
         except ImportError as e:
             if not retry:
                 raise OCRRecognitionError("無法解析 PDF") from e

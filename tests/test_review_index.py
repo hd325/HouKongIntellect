@@ -8,6 +8,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
+import tests  # Establish synthetic-only storage before application imports.
 from scripts import reindex_all
 from services.knowledge.vector_store import VectorStore
 from services.review_policy import is_published_record

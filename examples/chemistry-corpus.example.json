@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "version": "synthetic-example-only",
+  "owner_account": "replace-with-your-local-account",
+  "status": "partial",
+  "style_verified": false,
+  "coverage": {"inventory_complete": false},
+  "chunks": []
+}

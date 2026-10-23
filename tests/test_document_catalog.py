@@ -6,12 +6,13 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import tests  # Establish synthetic-only storage before application imports.
 from services.document_catalog import MAX_TEXT_CHARS, build_indexed_file_entries
 
 
-IMAGE_ID = "4f54c50f-51e4-4715-8291-3461ed570144"
-PDF_ID = "6778419e-9064-4dde-8aa8-a7d99d2c1191"
-TEXT_ID = "b8648b64-426e-4272-8966-109851db1bb4"
+IMAGE_ID = "ab12cd34-1234-4123-8123-abcdef123456"
+PDF_ID = "ab12cd34-1234-4123-8123-abcdef123457"
+TEXT_ID = "ab12cd34-1234-4123-8123-abcdef123458"
 
 
 def chunk(document_id: object, *, filename: str = "课堂资料.docx", page: int = 1,

@@ -10,6 +10,7 @@ from types import ModuleType
 import unittest
 from unittest.mock import Mock, patch
 
+import tests  # Establish synthetic-only storage before application imports.
 from services.knowledge.vector_store import ChromaUnavailable, VectorStore
 
 

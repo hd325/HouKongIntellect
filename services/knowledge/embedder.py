@@ -2,16 +2,16 @@
 可插拔文本嵌入器（Embedder）抽象层。
 
 为 RAG 提供统一的向量化接口，支持三种后端，按可用性自动降级，
-保证「段落级溯源 + 向量检索」在任何环境下都能稳定运行：
+为「段落级溯源 + 向量检索」提供轻量默认后端与可选后端：
 
 1. tencent  —— 腾讯云 混元 Embedding API（GetEmbedding，1024 维）
                * 复用既有 TENCENT_SECRET_ID / TENCENT_SECRET_KEY（与 OCR 同一套凭证）
                * 无需下载模型权重，线上调用，质量高、零本地依赖
 2. local    —— sentence-transformers 本地模型（shibing624/text2vec-base-chinese，768 维）
-               * 先安装 requirements-local.txt 并明确下载模型，运行时仅读取本地缓存
-               * LOCAL_EMBEDDING_MODEL 支持模型 ID 或已下载模型目录
-3. tfidf    —— Python 哈希词袋兜底嵌入（固定维度，零网络/零模型）
-               * 默认启用，不需要 torch 或预下载模型
+               * 读取部署者预先下载的本机权重，不在运行时下载
+               * 需另装 requirements-local.txt 中的可选依赖
+3. tfidf    —— numpy 哈希词袋兜底嵌入（固定维度，零网络/零模型）
+               * 核心安装即可使用，不需要外部密钥或模型下载
 
 集合命名规则：hk_knowledge_{backend}_{dim}，避免不同后端维度冲突导致 Chroma 报错。
 
@@ -27,9 +27,16 @@ import time
 from collections import Counter
 from typing import List
 
-from config.settings import EMBEDDING_BACKEND, LOCAL_EMBEDDING_MODEL
-
 logger = logging.getLogger("embedder")
+
+# 防止 sentence-transformers / torch 在 Windows 下因 OpenMP/MKL 多线程竞争触发段错误
+# （实测构造 LocalEmbedder 时若不限线程会直接 SIGSEGV 杀掉整个进程，auto 降级路径会踩到）。
+# 在模块导入早期设置，确保无论生产/脚本环境都生效。
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("MKL_NUM_THREADS", "1")
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
+
 
 # ----------------------------------------------------------------------
 # 基类
@@ -134,16 +141,14 @@ class TencentEmbedder(BaseEmbedder):
 class LocalEmbedder(BaseEmbedder):
     name = "local"
     dim = 768
-    _MODEL = LOCAL_EMBEDDING_MODEL
+    _MODEL = "shibing624/text2vec-base-chinese"
 
     def __init__(self, model_name: str = _MODEL):
-        # Limit local model threads before torch is imported; respect explicit settings.
-        os.environ.setdefault("OMP_NUM_THREADS", "1")
-        os.environ.setdefault("MKL_NUM_THREADS", "1")
-        os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+        # 香港及海外网络默认使用官方源；仍可通过 HF_ENDPOINT 手动切换镜像。
+        os.environ.setdefault("HF_ENDPOINT", "https://huggingface.co")
         from sentence_transformers import SentenceTransformer
 
-        # Explicit setup downloads the model; application requests never fetch weights.
+        # 模型已由部署步骤预下载；运行期禁止联网探测，避免网络波动产生警告。
         self._model = SentenceTransformer(model_name, local_files_only=True)
         self.dim = self._model.get_embedding_dimension()
 
@@ -211,19 +216,20 @@ def _build(backend: str) -> BaseEmbedder:
     if backend == "tencent":
         return TencentEmbedder()
     if backend == "local":
-        return LocalEmbedder()
+        from config.settings import LOCAL_EMBEDDING_MODEL
+        return LocalEmbedder(model_name=LOCAL_EMBEDDING_MODEL)
     if backend == "tfidf":
         return TfidfEmbedder()
     raise ValueError(f"未知嵌入后端: {backend}")
 
 
 def get_embedder() -> BaseEmbedder:
-    """返回（并缓存）当前激活的嵌入器；默认离线 TF-IDF。"""
+    """返回（并缓存）当前激活的嵌入器；默认本地，失败时降级 TF-IDF。"""
     global _EMBEDDER
     if _EMBEDDER is not None:
         return _EMBEDDER
 
-    backend = os.environ.get("EMBEDDING_BACKEND", EMBEDDING_BACKEND).strip().lower()
+    backend = os.environ.get("EMBEDDING_BACKEND", "tfidf").lower()
     if backend == "auto":
         from config.settings import is_tencent_ocr_configured
 

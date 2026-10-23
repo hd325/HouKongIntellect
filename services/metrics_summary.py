@@ -11,20 +11,24 @@ import copy
 import json
 import math
 import re
-from collections import Counter, defaultdict
+import threading
+from collections import Counter, OrderedDict, defaultdict
 from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 from statistics import mean
+from time import monotonic
 from typing import Any, Iterable, Mapping
 from uuid import uuid4
 
 
-from config.settings import DATA_DIR
-
-DEFAULT_LOG_PATH = DATA_DIR / "work" / "rag_metrics.jsonl"
+DEFAULT_LOG_PATH = Path(__file__).resolve().parents[1] / "work" / "rag_metrics.jsonl"
 LOCAL_TIMEZONE = timezone(timedelta(hours=8), name="Asia/Macau")
 TIMEZONE_NAME = "Asia/Macau"
 MINIMUM_RECORDS = 5
+_SUMMARY_CACHE_LIMIT = 8
+_SUMMARY_CACHE_TTL = 5.0
+_summary_cache_lock = threading.Lock()
+_summary_cache: OrderedDict = OrderedDict()
 _LATENCY_BUCKETS = (
     ("<100 ms", 0.0, 100.0),
     ("100–250 ms", 100.0, 250.0),
@@ -355,6 +359,36 @@ def build_metrics_summary(
     *,
     days: int = 30,
     now: datetime | None = None,
+) -> dict[str, Any]:
+    """Reuse an unchanged log summary briefly; never cache authentication or write the log."""
+    path = Path(log_path).resolve()
+    # Explicit clocks are used by offline reducers/tests and must remain exact.
+    if now is not None:
+        return _read_metrics_summary(path, days=days, now=now)
+    with _summary_cache_lock:
+        try:
+            stat = path.stat()
+            fingerprint = (stat.st_dev, stat.st_ino, stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns)
+        except OSError:
+            fingerprint = None
+        key = (str(path), days)
+        current = datetime.now(LOCAL_TIMEZONE)
+        entry = _summary_cache.get(key)
+        if (entry is not None and entry[0] == fingerprint and entry[1] == current.date()
+                and monotonic() - entry[2] < _SUMMARY_CACHE_TTL):
+            _summary_cache.move_to_end(key)
+            return copy.deepcopy(entry[3])
+        result = _read_metrics_summary(path, days=days, now=current)
+        # The cache contains only a bounded set of raw, user-independent aggregates.
+        _summary_cache[key] = (fingerprint, current.date(), monotonic(), result)
+        _summary_cache.move_to_end(key)
+        while len(_summary_cache) > _SUMMARY_CACHE_LIMIT:
+            _summary_cache.popitem(last=False)
+        return copy.deepcopy(result)
+
+
+def _read_metrics_summary(
+    log_path: str | Path, *, days: int, now: datetime | None,
 ) -> dict[str, Any]:
     """Read a JSONL log and return an API-ready summary; never mutate the log."""
     rows: list[Mapping[str, Any]] = []

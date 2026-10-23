@@ -1,12 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-Hant" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>濠江小智</title>
-    <script defer src="/static/tailwindcss.js"></script>
-    <script defer src="/static/marked.js"></script>
-    <script defer src="/static/pdf.min.js"></script>
+    <script async src="/static/marked.js" onload="window.initializeExternalLibraries?.()"></script>
     <link href="/static/font-awesome.css" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1061,6 +1059,20 @@
             justify-content: center;
         }
 
+        .ai-expanded-controls, .welcome-expanded-controls { flex-wrap: wrap; }
+        .teaching-mode-control { display: inline-flex; align-items: center; gap: 0.4rem; min-width: 0; margin-left: auto; color: var(--text-secondary); font-size: 0.75rem; }
+        .teaching-mode-select { max-width: 155px; min-height: 36px; padding: 0.4rem 0.65rem; border: 1px solid var(--border-primary); border-radius: 9999px; color: var(--text-primary); background: var(--bg-secondary); font: inherit; cursor: pointer; }
+        .teaching-mode-select:focus-visible { outline: 2px solid var(--blue-500); outline-offset: 2px; }
+        .teaching-mode-select.is-active { border-color: var(--blue-400); color: var(--blue-600); }
+        .teaching-mode-note { margin: -0.25rem 1rem 0.75rem; color: var(--text-secondary); font-size: 0.75rem; line-height: 1.6; overflow-wrap: anywhere; }
+        .teaching-mode-note[hidden] { display: none; }
+        .answer-skill-label { color: var(--text-secondary); font-size: 0.75rem; line-height: 1.7; margin-bottom: 0.35rem; }
+        @media (max-width: 420px) {
+            .teaching-mode-control { gap: 0.25rem; }
+            .teaching-mode-control > span { display: none; }
+            .teaching-mode-select { max-width: 135px; }
+        }
+
         /* ==================== 統一按鈕樣式：思考 + 智能搜尋 ==================== */
         .ai-toggle-btn, .mode-btn {
             /* 佈局 */
@@ -1695,18 +1707,87 @@
             justify-content: flex-end;
         }
         
-        /* 正文气泡外保留检索进度，避免流式 Markdown 重绘清空状态。 */
+        /* 進度只在生成時顯示，完成後由回答上方的單一來源欄接替。 */
         .retrieval-status {
-            margin-bottom: .5rem;
-            padding: .55rem .7rem;
-            border: 1px solid var(--border-primary);
-            border-radius: 12px;
-            background: var(--bg-upload-hover);
-            color: var(--text-primary);
-            font-size: 13px;
+            margin: .15rem 0 .4rem;
+            color: var(--text-secondary);
+            font-size: 12px;
             line-height: 1.6;
         }
         .retrieval-status.is-answering { font-size: 12px; color: var(--text-secondary); }
+        .web-status { margin: .25rem 0; font-size: 12px; color: var(--text-secondary); overflow-wrap: anywhere; }
+        .web-status[data-status="error"], .web-status[data-status="partial"], .web-status[data-status="no_results"] { color: #9a6700; }
+        .file-task-status { margin: .25rem 0; font-size: 12px; color: var(--text-secondary); overflow-wrap: anywhere; }
+        .file-task-status[data-status="error"] { color: #b45309; }
+        [data-theme="dark"] .file-task-status[data-status="error"] { color: #fbbf24; }
+        .file-task-status[hidden], .message-artifacts[hidden], .message-bubble[hidden] { display: none !important; }
+        .message-artifacts { display: grid; gap: .55rem; margin: .6rem 0; max-width: 100%; min-width: 0; }
+        .message-artifact { display: flex; gap: .7rem; min-width: 0; padding: .8rem; border: 1px solid var(--border-primary); border-radius: 12px; background: var(--bg-secondary); }
+        .message-artifact-icon { font-size: 25px; flex: 0 0 auto; }
+        .message-artifact-body { min-width: 0; flex: 1; }
+        .message-artifact-name { color: var(--text-primary); font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+        .message-artifact-meta, .message-artifact-description { margin-top: .2rem; font-size: 12px; color: var(--text-secondary); overflow-wrap: anywhere; }
+        .message-artifact-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .6rem; }
+        .message-artifact-actions button { padding: .3rem .65rem; border: 1px solid var(--border-primary); border-radius: 7px; color: var(--text-primary); background: var(--bg-primary); font-size: 12px; cursor: pointer; }
+        .message-artifact-actions button:hover { border-color: var(--border-focus, #2563eb); }
+        .message-artifact-actions button:focus-visible { outline: 2px solid var(--border-focus, #2563eb); outline-offset: 2px; }
+        .web-sources { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+        .web-sources summary { cursor: pointer; font-weight: 600; }
+        .web-source-row { margin-top: .65rem; padding-top: .5rem; border-top: 1px solid var(--border-primary); }
+        .web-source-row a, .web-ref { color: var(--accent-primary, #2563eb); text-decoration: underline; overflow-wrap: anywhere; }
+        .web-source-detail { font-size: 11px; color: var(--text-secondary); }
+        .web-source-snippet { margin: .25rem 0 0; white-space: pre-wrap; }
+        .web-ref { text-decoration: none; }
+        .answer-sources { margin: 0 0 .55rem; min-width: 0; max-width: 100%; font-size: 12px; color: var(--text-secondary); }
+        .answer-sources[hidden], .retrieval-status[hidden], .web-status[hidden], .answer-skill-label[hidden] { display: none !important; }
+        .answer-sources > details { border: 1px solid var(--border-primary); border-radius: 12px; background: var(--bg-secondary); }
+        .answer-sources summary { display: flex; align-items: center; gap: .45rem; flex-wrap: wrap; padding: .5rem .7rem; cursor: pointer; list-style: none; }
+        .answer-sources summary::-webkit-details-marker { display: none; }
+        .answer-sources summary::before { content: '›'; font-size: 17px; line-height: 1; transition: transform .15s; }
+        .answer-sources details[open] > summary::before { transform: rotate(90deg); }
+        .answer-sources summary:focus-visible, .answer-citation:focus-visible { outline: 2px solid var(--border-focus, #2563eb); outline-offset: 3px; }
+        .answer-sources-title { color: var(--text-primary); font-weight: 600; }
+        .answer-source-state { padding: .08rem .4rem; border-radius: 5px; background: #fff5d6; color: #855b09; font-size: 11px; font-weight: 400; }
+        [data-theme="dark"] .answer-source-state { background: #3e331b; color: #f3d38c; }
+        .answer-source-note { padding: .3rem .1rem; color: var(--text-secondary); }
+        .answer-source-list { padding: 0 .7rem .55rem; }
+        .answer-source-row { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: .45rem; padding: .6rem 0; border-top: 1px solid var(--border-primary); scroll-margin: 1rem; }
+        .answer-source-number { display: inline-flex; justify-content: center; align-items: center; width: 20px; height: 20px; border-radius: 7px; background: var(--bg-upload-hover); color: var(--text-secondary); font-size: 11px; }
+        .answer-source-heading { min-width: 0; color: var(--text-primary); font: inherit; font-weight: 600; text-align: left; overflow-wrap: anywhere; }
+        button.answer-source-heading { padding: 0; border: 0; background: none; cursor: pointer; }
+        a.answer-source-heading { color: var(--accent-primary, #2563eb); text-decoration: none; }
+        .answer-source-heading:hover { text-decoration: underline; }
+        .answer-source-detail { margin-top: .12rem; font-size: 11px; color: var(--text-secondary); overflow-wrap: anywhere; }
+        .answer-source-excerpt { margin: .3rem 0 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; line-height: 1.6; }
+        .answer-source-file-row { grid-template-columns: auto minmax(0, 1fr); align-items: center; padding: .2rem 0; }
+        .answer-source-numbers { display: flex; align-items: center; gap: .2rem; }
+        .answer-file-body { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; column-gap: .6rem; min-width: 0; }
+        .answer-source-file-row .answer-source-title { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .answer-source-pages { min-width: 0; max-width: 18rem; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .answer-source-open { min-height: 32px; cursor: pointer; }
+        button.answer-source-number { min-width: 24px; width: auto; min-height: 32px; height: auto; padding: 0 .25rem; border: 0; font: inherit; font-size: 11px; }
+        .answer-source-action { padding: 0 .4rem; border: 0; border-radius: 5px; background: transparent; color: var(--accent-primary, #2563eb); font: inherit; white-space: nowrap; }
+        .answer-source-open:hover { background: var(--bg-upload-hover); }
+        .answer-source-open:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
+        .answer-source-open:disabled { cursor: default; color: var(--text-secondary); }
+        .answer-source-file-row.is-multi-reference { grid-template-columns: auto minmax(0, 1fr) auto; gap: .1rem .35rem; }
+        .is-multi-reference .answer-file-body { display: contents; }
+        .is-multi-reference .answer-source-title { grid-column: 1 / 3; grid-row: 1; min-height: 24px; }
+        .is-multi-reference .answer-source-numbers { grid-column: 1; grid-row: 2; flex-wrap: wrap; max-width: 104px; gap: .15rem; }
+        .is-multi-reference .answer-source-pages { grid-column: 2; grid-row: 2; max-width: 100%; white-space: normal; }
+        .is-multi-reference .answer-source-action { grid-column: 3; grid-row: 1 / 3; }
+        @media (max-width: 900px) {
+            .answer-source-file-row { grid-template-columns: auto minmax(0, 1fr) auto; gap: .1rem .35rem; padding: .25rem 0; }
+            .answer-file-body { display: contents; }
+            .answer-source-file-row .answer-source-title { grid-column: 1 / 3; grid-row: 1; min-height: 24px; }
+            .answer-source-numbers { grid-column: 1; grid-row: 2; flex-wrap: wrap; max-width: 104px; gap: .15rem; }
+            .answer-source-pages { grid-column: 2; grid-row: 2; max-width: 100%; white-space: normal; }
+            .answer-source-action { grid-column: 3; grid-row: 1 / 3; min-height: 44px; }
+        }
+        .answer-source-row.is-highlighted { animation: answerSourceFlash 1.5s ease; }
+        @keyframes answerSourceFlash { from { background: var(--bg-upload-hover); } to { background: transparent; } }
+        .message-bubble .answer-citation { min-width: 18px; height: 18px; padding: 0 5px; margin: 0 2px; font-size: 10px; font-weight: 600; line-height: 1; vertical-align: .1em; }
+        [data-theme="dark"] .answer-citation { background: #20375b; border-color: #3e5680; color: #b5d0ff; }
         .retrieval-status.is-empty { background: #fffbeb; border-color: #f59e0b; color: #78350f; }
         [data-theme="dark"] .retrieval-status.is-empty { background: #422006; border-color: #a16207; color: #fde68a; }
         .retrieval-status-chips { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .3rem; }
@@ -1765,15 +1846,6 @@
             transform: translateY(-1px);
         }
         .retrieval-source summary { cursor: pointer; color: var(--text-primary); font-weight: 600; }
-        .source-file-row {
-            display: block; width: 100%; margin-top: .4rem; padding: .45rem .6rem;
-            text-align: left; border: 1px solid var(--border-primary); border-radius: 8px;
-            background: var(--bg-primary); color: var(--text-primary); cursor: pointer;
-            font: inherit; overflow-wrap: anywhere;
-        }
-        .source-file-row:hover { background: var(--bg-upload-hover); }
-        .source-file-row:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
-        .source-file-row:disabled { cursor: default; color: var(--text-secondary); }
         
         .message-time {
             opacity: 0.7;
@@ -4192,6 +4264,19 @@
     .metrics-value-card { padding: 16px; }
 }
 @media (prefers-reduced-motion: reduce) { .metrics-spinner { animation: none; } }
+        /* 內容直接顯示，取消訊息進場和所有載入動畫。 */
+        .message-row, .message-row.user, .message-row.ai,
+        .typing-dot, .loading-dot, .retrieval-status, .streaming-timer, .fa-spin,
+        .categorize-progress-track.is-indeterminate .categorize-progress-fill {
+            animation: none !important;
+        }
+        .source-view-spinner, .file-preview-spinner, .metrics-spinner, .send-btn.sending::after { display: none !important; }
+        @supports (content-visibility: auto) {
+            #history-list > .history-item {
+                content-visibility: auto;
+                contain-intrinsic-size: auto 64px;
+            }
+        }
 
 .file-preview-pane[hidden] { display: none; }
 .file-panel.is-previewing { width: min(720px, 92vw); }
@@ -4305,6 +4390,13 @@
             #ai-text-input::placeholder { font-size: 12px; }
         }
     </style>
+    <!-- BEGIN GENERATED TAILWIND -->
+    <style id="tailwind-generated">/* Generated by scripts/build_tailwind_css.cjs with the checked-in Tailwind v3 runtime.
+ * Compiler SHA-256: 176e894661aa9cdc9a5cba6c720044cbbf7b8bd80d1c9a142a7c24b1b6c50d15
+ * Rebuild after adding utility classes to index.html; do not edit manually. */
+*, ::before, ::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }/* ! tailwindcss v3.4.17 | MIT License | https://tailwindcss.com */*,::after,::before{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}::after,::before{--tw-content:''}:host,html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;tab-size:4;font-family:ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{margin:0;line-height:inherit}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}button,input,optgroup,select,textarea{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}button,input:where([type=button]),input:where([type=reset]),input:where([type=submit]){-webkit-appearance:button;background-color:transparent;background-image:none}:-moz-focusring{outline:auto}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}blockquote,dd,dl,figure,h1,h2,h3,h4,h5,h6,hr,p,pre{margin:0}fieldset{margin:0;padding:0}legend{padding:0}menu,ol,ul{list-style:none;margin:0;padding:0}dialog{padding:0}textarea{resize:vertical}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}[role=button],button{cursor:pointer}:disabled{cursor:default}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]:where(:not([hidden=until-found])){display:none}.\!container{width:100% !important}.container{width:100%}@media (min-width: 640px){.\!container{max-width:640px !important}.container{max-width:640px}}@media (min-width: 768px){.\!container{max-width:768px !important}.container{max-width:768px}}@media (min-width: 1024px){.\!container{max-width:1024px !important}.container{max-width:1024px}}@media (min-width: 1280px){.\!container{max-width:1280px !important}.container{max-width:1280px}}@media (min-width: 1536px){.\!container{max-width:1536px !important}.container{max-width:1536px}}.visible{visibility:visible}.collapse{visibility:collapse}.static{position:static}.fixed{position:fixed}.absolute{position:absolute}.relative{position:relative}.sticky{position:sticky}.isolate{isolation:isolate}.my-3{margin-top:0.75rem;margin-bottom:0.75rem}.mb-2{margin-bottom:0.5rem}.mb-3{margin-bottom:0.75rem}.block{display:block}.flex{display:flex}.inline-flex{display:inline-flex}.table{display:table}.grid{display:grid}.hidden{display:none}.w-full{width:100%}.min-w-0{min-width:0px}.flex-1{flex:1 1 0%}.border-collapse{border-collapse:collapse}.transform{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.cursor-pointer{cursor:pointer}.resize{resize:both}.items-start{align-items:flex-start}.items-center{align-items:center}.justify-center{justify-content:center}.justify-between{justify-content:space-between}.gap-1{gap:0.25rem}.gap-2{gap:0.5rem}.space-y-1 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(0.25rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(0.25rem * var(--tw-space-y-reverse))}.space-y-2 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(0.5rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(0.5rem * var(--tw-space-y-reverse))}.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rounded{border-radius:0.25rem}.rounded-lg{border-radius:0.5rem}.border{border-width:1px}.border-gray-300{--tw-border-opacity:1;border-color:rgb(209 213 219 / var(--tw-border-opacity, 1))}.bg-blue-600{--tw-bg-opacity:1;background-color:rgb(37 99 235 / var(--tw-bg-opacity, 1))}.p-1{padding:0.25rem}.p-3{padding:0.75rem}.p-4{padding:1rem}.px-3{padding-left:0.75rem;padding-right:0.75rem}.py-2{padding-top:0.5rem;padding-bottom:0.5rem}.py-2\.5{padding-top:0.625rem;padding-bottom:0.625rem}.text-center{text-align:center}.text-sm{font-size:0.875rem;line-height:1.25rem}.text-xs{font-size:0.75rem;line-height:1rem}.font-medium{font-weight:500}.font-semibold{font-weight:600}.uppercase{text-transform:uppercase}.italic{font-style:italic}.tabular-nums{--tw-numeric-spacing:tabular-nums;font-variant-numeric:var(--tw-ordinal) var(--tw-slashed-zero) var(--tw-numeric-figure) var(--tw-numeric-spacing) var(--tw-numeric-fraction)}.tracking-wide{letter-spacing:0.025em}.text-amber-500{--tw-text-opacity:1;color:rgb(245 158 11 / var(--tw-text-opacity, 1))}.text-blue-500{--tw-text-opacity:1;color:rgb(59 130 246 / var(--tw-text-opacity, 1))}.text-gray-500{--tw-text-opacity:1;color:rgb(107 114 128 / var(--tw-text-opacity, 1))}.text-green-500{--tw-text-opacity:1;color:rgb(34 197 94 / var(--tw-text-opacity, 1))}.text-red-500{--tw-text-opacity:1;color:rgb(239 68 68 / var(--tw-text-opacity, 1))}.text-white{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity, 1))}.underline{-webkit-text-decoration-line:underline;text-decoration-line:underline}.antialiased{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}.opacity-0{opacity:0}.blur{--tw-blur:blur(8px);filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.transition-all{transition-property:all;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.transition-colors{transition-property:color, background-color, border-color, fill, stroke, -webkit-text-decoration-color;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, -webkit-text-decoration-color;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.transition-opacity{transition-property:opacity;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.ease-in-out{transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1)}.ease-out{transition-timing-function:cubic-bezier(0, 0, 0.2, 1)}.hover\:bg-blue-700:hover{--tw-bg-opacity:1;background-color:rgb(29 78 216 / var(--tw-bg-opacity, 1))}.hover\:text-blue-500:hover{--tw-text-opacity:1;color:rgb(59 130 246 / var(--tw-text-opacity, 1))}.group:hover .group-hover\:opacity-100{opacity:1}</style>
+    <!-- END GENERATED TAILWIND -->
+<script src="/static/dompurify.min.js"></script>
 </head>
 <body>
     <!-- Login Page -->
@@ -4610,7 +4702,15 @@
                                         </svg>
                                         <span style="display:none;">溯源</span>
                                     </button>
+                                    <label class="teaching-mode-control" for="welcome-skill-select">
+                                        <span>教學模式</span>
+                                        <select id="welcome-skill-select" class="teaching-mode-select" aria-label="教學模式" aria-describedby="welcome-skill-note">
+                                            <option value="none">不啟用 Skill</option>
+                                            <option value="chemistry-teacher">化學老師</option>
+                                        </select>
+                                    </label>
                                 </div>
+                                <p id="welcome-skill-note" class="teaching-mode-note" role="status" hidden></p>
                             </div>
                             
                         </div>
@@ -4686,7 +4786,15 @@
                                         </svg>
                                         <span style="display:none;">溯源</span>
                                     </button>
+                                    <label class="teaching-mode-control" for="ai-skill-select">
+                                        <span>教學模式</span>
+                                        <select id="ai-skill-select" class="teaching-mode-select" aria-label="教學模式" aria-describedby="ai-skill-note">
+                                            <option value="none">不啟用 Skill</option>
+                                            <option value="chemistry-teacher">化學老師</option>
+                                        </select>
+                                    </label>
                                 </div>
+                            <p id="ai-skill-note" class="teaching-mode-note" role="status" hidden></p>
                         </div>
                     </div>
                 </div>
@@ -4799,18 +4907,34 @@
         // ===================== Configuration =====================
         // 動態跟隨頁面 host，避免 CORS 問題
         // HTTPS 環境下（Nginx 反代）不拼端口，本機開發才帶 8000 或 8001
-        const _isLocalDev = (window.location.protocol === 'http:' && (window.location.port === '8000' || window.location.port === '8001'));
-        window.API_BASE = _isLocalDev
-            ? `${window.location.protocol}//${window.location.hostname}:${window.location.port}/api`
-            : `${window.location.protocol}//${window.location.hostname}/api`;
-        
-        // defer 依賴先完成初始化，再允許登入後的 Markdown/PDF 操作。
-        let resolveLibrariesReady;
-        const librariesReady = new Promise(resolve => { resolveLibrariesReady = resolve; });
+        window.API_BASE = `${window.location.origin}/api`;
+
+        // Markdown 增強可在首屏之後完成；PDF 只在真正預覽時載入。
+        let markdownInitialized = false;
+        const pendingMarkdownBubbles = new Map();
+        let pdfLibraryPromise = null;
+        function ensurePdfLibrary() {
+            if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+            if (!pdfLibraryPromise) {
+                pdfLibraryPromise = new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = '/static/pdf.min.js';
+                    script.onload = () => {
+                        if (!window.pdfjsLib) { reject(new Error('PDF.js unavailable')); return; }
+                        pdfjsLib.GlobalWorkerOptions.workerSrc = '/static/pdf.worker.min.js';
+                        resolve(window.pdfjsLib);
+                    };
+                    script.onerror = () => reject(new Error('PDF.js unavailable'));
+                    document.head.appendChild(script);
+                }).catch(error => { pdfLibraryPromise = null; throw error; });
+            }
+            return pdfLibraryPromise;
+        }
         function initializeExternalLibraries() {
             // 本地 Tailwind 只監聽 DOM 變化；defer 後需要主動掃描已解析的頁面。
             if (window.tailwind) window.tailwind.config = { ...window.tailwind.config };
-            if (typeof marked !== 'undefined') {
+            if (typeof marked !== 'undefined' && !markdownInitialized) {
+                markdownInitialized = true;
                 marked.setOptions({
                     breaks: true,        // GFM 換行
                     gfm: true,           // GitHub 風格 Markdown
@@ -4820,6 +4944,8 @@
 
                 // 自定義渲染函數，用於處理表格
                 const renderer = new marked.Renderer();
+                // 模型與外部網頁內容不具 HTML 權限；保留 Markdown 和數學文字。
+                renderer.html = function(html) { return escapeHtml(typeof html === 'string' ? html : html?.text || ''); };
                 renderer.table = function(header, body) {
                     return `<table class="w-full border-collapse my-3">
                 <thead>${header}</thead>
@@ -4844,8 +4970,12 @@
                 };
                 marked.use({ renderer });
             }
-            if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = '/static/pdf.worker.min.js';
-            resolveLibrariesReady();
+            if (typeof marked !== 'undefined') {
+                for (const [bubble, args] of pendingMarkdownBubbles) {
+                    if (bubble.isConnected) renderMessageMarkdown(bubble, ...args);
+                }
+                pendingMarkdownBubbles.clear();
+            }
         }
         document.addEventListener('DOMContentLoaded', initializeExternalLibraries, { once: true });
         
@@ -4859,9 +4989,157 @@
         let loginAttemptGeneration = 0;
         let logoutInProgress = false;
         let startupLoadState = null;
-        let startupFrame = null;
-        let startupIdle = null;
-        let startupFallbackTimer = null;
+        let fileCatalog = [];
+        let filesRenderSignature = null;
+        let historyRenderSignature = null;
+        let renderedConversationSignature = null;
+        let conversationViewGeneration = 0;
+        let cachedCurrentConversation = null;
+        const STARTUP_CACHE_PREFIX = 'houkong.startup.v1:';
+        const STARTUP_CACHE_MAX_AGE = 12 * 60 * 60 * 1000;
+
+        function panelCacheKey(kind, id) { return `houkong.panel.v1:${kind}:${id}`; }
+        function readPanelCache(kind, id = sessionId) {
+            if (!id) return null;
+            try {
+                const raw = sessionStorage.getItem(panelCacheKey(kind, id));
+                if (!raw || raw.length > 2000000) return null;
+                const cached = JSON.parse(raw);
+                const account = currentAccountProfile().account;
+                const age = Date.now() - cached?.savedAt;
+                if (cached?.version === 1 && account && cached.account === account &&
+                    Number.isFinite(age) && age >= 0 && age < STARTUP_CACHE_MAX_AGE &&
+                    cached.data && typeof cached.data === 'object') return cached.data;
+            } catch (_) {}
+            try { sessionStorage.removeItem(panelCacheKey(kind, id)); } catch (_) {}
+            return null;
+        }
+        function writePanelCache(kind, data, id = sessionId) {
+            if (!id || id !== sessionId || logoutInProgress) return;
+            try {
+                const account = currentAccountProfile().account;
+                if (!account) return;
+                const raw = JSON.stringify({ version: 1, savedAt: Date.now(), account, data });
+                if (raw.length <= 2000000) sessionStorage.setItem(panelCacheKey(kind, id), raw);
+            } catch (_) { /* 面板可在禁止儲存或空間不足時正常使用 */ }
+        }
+        function clearPanelCaches(id = sessionId) {
+            for (const kind of ['metrics', 'reviews']) {
+                try { sessionStorage.removeItem(panelCacheKey(kind, id)); } catch (_) {}
+            }
+            window.clearMetricsPanelCache?.(id);
+            window.clearReviewPanelCache?.(id);
+        }
+        function schedulePanelPrefetch() {
+            const id = sessionId;
+            const prefetch = () => {
+                if (!id || id !== sessionId || logoutInProgress) return;
+                void Promise.allSettled([window.prefetchMetricsPanel?.(), window.prefetchReviewPanel?.()]);
+            };
+            // 先繪製已還原的首屏，再在背景預取面板；入口本身始終可立即打開。
+            const afterPaint = () => requestAnimationFrame(() => requestAnimationFrame(prefetch));
+            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', afterPaint, { once: true });
+            else afterPaint();
+        }
+
+        // 私人快照只留在本分頁，依登入會話隔離；讀寫失敗不影響操作。
+        function clearStartupCache(id = sessionId) {
+            try { sessionStorage.removeItem(STARTUP_CACHE_PREFIX + id); } catch (_) {}
+        }
+
+        function readStartupCache() {
+            try {
+                const cached = JSON.parse(sessionStorage.getItem(STARTUP_CACHE_PREFIX + sessionId));
+                const account = JSON.parse(localStorage.getItem('userInfo') || '{}').account;
+                const validConversation = !cached?.currentConversation ||
+                    (typeof cached.currentConversation.id === 'string' && Array.isArray(cached.currentConversation.messages) &&
+                        cached.currentConversation.messages.every(message => message && typeof message.content === 'string'));
+                if (cached?.version === 1 && account && cached.userInfo?.account === account &&
+                    Number.isFinite(cached.savedAt) && Date.now() - cached.savedAt >= 0 &&
+                    Date.now() - cached.savedAt < STARTUP_CACHE_MAX_AGE &&
+                    Array.isArray(cached.history) && cached.history.every(item => item && typeof item.id === 'string') &&
+                    Array.isArray(cached.files) && cached.files.every(item => item && typeof item.id === 'string' && typeof item.name === 'string') &&
+                    validConversation) return cached;
+            } catch (_) {}
+            clearStartupCache();
+            return null;
+        }
+
+        function saveStartupCache() {
+            if (!sessionId || logoutInProgress || startupLoadState?.session !== sessionId) return;
+            try {
+                const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
+                if (!userInfo.account) return;
+                // 不將文件正文寫入同步儲存，避免大型文件阻塞主執行緒。
+                const fields = ['id', 'name', 'size', 'subject', 'owner', 'audience', 'uploaded_at',
+                    'has_original', 'indexed_only', 'publisher_role', 'is_truncated', 'type',
+                    'material_type', 'material_custom', 'study_period', 'notes', 'original_filename', 'original_name'];
+                const files = fileCatalog.map(file => Object.fromEntries(fields.filter(key => key in file).map(key => [key, file[key]])));
+                sessionStorage.setItem(STARTUP_CACHE_PREFIX + sessionId, JSON.stringify({
+                    version: 1, savedAt: Date.now(), userInfo, history: conversationHistory,
+                    files, currentConversation: cachedCurrentConversation
+                }));
+            } catch (_) { /* 無儲存空間或私人瀏覽仍可正常使用 */ }
+        }
+
+        function cacheCurrentConversation(messages = currentConversation) {
+            cachedCurrentConversation = currentConversationId ? { id: currentConversationId, messages } : null;
+            saveStartupCache();
+        }
+
+        async function refreshConversationCache() {
+            const requestedSession = sessionId;
+            const generation = conversationViewGeneration;
+            if (!requestedSession || logoutInProgress) return;
+            try {
+                const response = await fetch(`${API_BASE}/session`, { headers: { 'X-Session-ID': requestedSession } });
+                const payload = await response.json();
+                if (requestedSession !== sessionId || generation !== conversationViewGeneration || logoutInProgress) return;
+                if (payload.code === 200) {
+                    cachedCurrentConversation = payload.data.current_conversation || null;
+                    if (cachedCurrentConversation) {
+                        currentConversationId = cachedCurrentConversation.id;
+                        currentConversation = cachedCurrentConversation.messages || [];
+                    }
+                    saveStartupCache();
+                }
+            } catch (_) { /* 保留既有快照，下一次成功更新時再同步 */ }
+        }
+
+        function invalidateStartupSession(id) {
+            if (sessionId !== id) return;
+            clearStartupCache(id);
+            clearPanelCaches(id);
+            _chunkCache.clear();
+            pendingMarkdownBubbles.clear();
+            logoutInProgress = true;
+            cancelStartupLoads();
+            currentStreamController?.abort();
+            currentStreamController = null;
+            isLoading = false;
+            closeFilePreview();
+            closePreviewModal();
+            closeReviewPanel();
+            closeSourceView();
+            window.closeMetricsPanel?.();
+            window.closeQuizPanels?.();
+            clearFileRefs();
+            ++conversationViewGeneration;
+            sessionId = null;
+            conversationHistory = [];
+            fileCatalog = [];
+            cachedCurrentConversation = null;
+            currentConversation = [];
+            currentConversationId = null;
+            previewFiles.clear();
+            messagesContainer.replaceChildren();
+            document.getElementById('history-list').replaceChildren();
+            document.getElementById('all-files-list').replaceChildren();
+            localStorage.removeItem('sessionId');
+            localStorage.removeItem('userInfo');
+            app.classList.add('hidden');
+            loginPage.classList.remove('hidden');
+        }
         let loadFilesAbortController = null;
         let filesLoadGeneration = 0;
         let loadHistoryAbortController = null;
@@ -5382,7 +5660,7 @@
             e.preventDefault();
             
             const account = document.getElementById('account').value.trim();
-            const password = document.getElementById('password').value.trim();
+            const password = document.getElementById('password').value;
             
             if (!account || !password) {
                 showLoginError('請輸入賬號和密碼');
@@ -5405,9 +5683,7 @@
                     sessionId = data.data.session_id;
                     localStorage.setItem('sessionId', sessionId);
                     localStorage.setItem('userInfo', JSON.stringify(data.data.user_info));
-                    const loggedInSession = sessionId;
-                    await librariesReady;
-                    if (sessionId === loggedInSession) showApp({ current_conversation: null });
+                    showApp({ current_conversation: null });
                 } else {
                     showLoginError('賬號或密碼錯誤');
                 }
@@ -5437,6 +5713,9 @@
             if (app) app.classList.remove('hidden');
             updateUserDisplay();
             initializeUI(sessionData);
+            renderConversationHistory();
+            renderFiles(fileCatalog);
+            schedulePanelPrefetch();
         }
 
         function updateUserDisplay() {
@@ -5449,6 +5728,7 @@
         
         // ===================== Enhanced Messages =====================
         function addMessage(content, isUser = false, metadata = {}) {
+            ++conversationViewGeneration;
             enterChatMode();
             
             // 隱藏原來的輸入框，顯示新的 AI 輸入框
@@ -5460,7 +5740,7 @@
             // Create message row with animation
             const messageRow = document.createElement('div');
             messageRow.className = `message-row ${isUser ? 'user' : 'ai'}`;
-            messageRow.style.opacity = '0';
+            messageRow.style.opacity = '1';
             
             // Message content wrapper
             const messageContent = document.createElement('div');
@@ -5475,7 +5755,7 @@
                 bubble.textContent = content;
             } else {
                 bubble.classList.add('markdown-content');
-                bubble.innerHTML = renderWithThinkStyling(content, normalizeCitationMap(metadata.citation_map ?? metadata.citationMap), hasEmptyCitationMap(metadata));
+                renderMessageMarkdown(bubble, content, normalizeCitationMap(metadata.citation_map ?? metadata.citationMap), hasEmptyCitationMap(metadata), metadata.web_sources);
             }
             
             // Message meta (time and status)
@@ -5501,18 +5781,7 @@
             
             messagesContainer.appendChild(messageRow);
             
-            // Trigger animation
-            requestAnimationFrame(() => {
-                messageRow.style.opacity = '1';
-                messageRow.style.transform = 'translateY(0)';
-            });
-            
-            // Smooth scroll to bottom
-            setTimeout(() => {
-                if (shouldAutoStickToBottom || isUser) {
-                    scrollMessagesToBottom('smooth');
-                }
-            }, 50);
+            if (shouldAutoStickToBottom || isUser) scrollMessagesToBottom('auto');
             
             // Save to current conversation
             currentConversation.push({
@@ -5520,8 +5789,16 @@
                 is_user: isUser,
                 timestamp: new Date().toISOString(),
                 citation_map: metadata.citation_map ?? metadata.citationMap,
+                web_sources: metadata.web_sources,
+                web_status: metadata.web_status,
+                rag_status: metadata.rag_status,
+                artifacts: metadata.artifacts ?? metadata.metadata?.artifacts,
+                file_task_id: metadata.file_task_id ?? metadata.metadata?.file_task_id,
+                skill_id: metadata.skill_id,
+                skill_context: metadata.skill_context,
                 metadata
             });
+            cacheCurrentConversation();
         }
         
         function showLoading() {
@@ -5965,6 +6242,97 @@
             });
         }
 
+        // 教學模式只影響之後送出的問題；每則答案保留當時的載入結果。
+        let selectedSkillId = null;
+        let teachingSkillCatalog = null;
+        let teachingSkillCatalogSession = null;
+        let teachingSkillLoadGeneration = 0;
+
+        function teacherModeDescription(context) {
+            if (!context) return '正在確認教學模式狀態；老師風格待錄音分析。';
+            if (context.style_verified && context.status === 'no_relevant_sources') return '已載入老師教學方法；本題沒有可引用的課堂片段。';
+            if (context.style_verified && context.method_label) return `本題按「${context.method_label}」帶你判斷。`;
+            const descriptions = {
+                awaiting_authorization: '已啟用化學教學流程；等待錄音授權，老師風格尚未提煉。',
+                no_sources: '已啟用化學教學流程；尚無可用課堂資料，老師風格待錄音分析。',
+                private_sources: '已啟用化學教學流程；目前帳號未獲授權使用課堂資料。',
+                no_relevant_sources: '本題未找到相關課堂片段，以下按一般化學教學流程回答。',
+                source_unavailable: '課堂資料暫時無法讀取；老師風格尚未確認。',
+                skill_unavailable: '化學老師模式暫時無法載入，請稍後重試或選擇不啟用 Skill。',
+                loading: '正在載入化學教學規則…',
+                unconfirmed: '尚未確認化學教學規則是否載入，請重試。'
+            };
+            if (descriptions[context.status]) return descriptions[context.status];
+            if (context.style_verified) return '已載入老師的教學規則，並按本題檢索課堂資料。';
+            return '已啟用化學教學流程；老師風格尚待足夠課堂證據確認。';
+        }
+
+        function syncTeachingModeControls() {
+            const teacher = selectedSkillId === 'chemistry-teacher';
+            const metadata = teachingSkillCatalog?.find(item => item.id === 'chemistry-teacher');
+            ['welcome', 'ai'].forEach(prefix => {
+                const select = document.getElementById(prefix + '-skill-select');
+                if (select) {
+                    select.value = selectedSkillId || 'none';
+                    select.classList.toggle('is-active', teacher);
+                    const option = select.querySelector('option[value="chemistry-teacher"]');
+                    if (option) option.disabled = metadata?.available === false;
+                }
+                const note = document.getElementById(prefix + '-skill-note');
+                if (note) {
+                    note.hidden = !teacher;
+                    note.textContent = teacher ? teacherModeDescription(metadata) + ' 切換只影響後續回答。' : '';
+                }
+            });
+            updateDockedLayout(shouldAutoStickToBottom);
+        }
+
+        async function loadTeachingSkills() {
+            const requestedSession = sessionId;
+            if (!requestedSession) return;
+            const generation = ++teachingSkillLoadGeneration;
+            if (teachingSkillCatalogSession !== requestedSession) {
+                teachingSkillCatalog = null;
+                teachingSkillCatalogSession = requestedSession;
+                selectedSkillId = null;
+                syncTeachingModeControls();
+            }
+            try {
+                const response = await fetch(`${API_BASE}/skills`, { headers: { 'X-Session-ID': requestedSession } });
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                const payload = await response.json();
+                if (requestedSession !== sessionId || generation !== teachingSkillLoadGeneration || logoutInProgress) return;
+                if (payload.code !== 200 || !Array.isArray(payload.data?.skills)) throw new Error('Invalid skill catalog');
+                teachingSkillCatalog = payload.data.skills;
+            } catch (_) {
+                if (requestedSession !== sessionId || generation !== teachingSkillLoadGeneration || logoutInProgress) return;
+                teachingSkillCatalog = [{ id: 'chemistry-teacher', status: 'source_unavailable', available: true }];
+            }
+            syncTeachingModeControls();
+        }
+
+        ['welcome', 'ai'].forEach(prefix => {
+            document.getElementById(prefix + '-skill-select')?.addEventListener('change', event => {
+                selectedSkillId = event.target.value === 'chemistry-teacher' ? 'chemistry-teacher' : null;
+                syncTeachingModeControls();
+            });
+        });
+
+        function renderAnswerSkill(label, context, fallbackSkillId) {
+            const teacher = (context?.skill_id ?? fallbackSkillId) === 'chemistry-teacher';
+            label.textContent = teacher ? '化學老師' : '';
+            label.hidden = !teacher;
+            label.dataset.skillId = teacher ? 'chemistry-teacher' : 'none';
+        }
+
+        function appendHistoricalSkill(contentEl, message) {
+            if (!message.skill_context && !Object.prototype.hasOwnProperty.call(message, 'skill_id')) return;
+            const label = document.createElement('div');
+            label.className = 'answer-skill-label';
+            renderAnswerSkill(label, message.skill_context, message.skill_id);
+            contentEl.prepend(label);
+        }
+
         // Local PDF.js is shared by source-page and file previews; render one page at a time.
         class LocalPdfViewer {
             constructor(container, options = {}) {
@@ -5994,14 +6362,11 @@
                 }
             }
             async load(documentId, targetPage = 1) {
-                if (!window.pdfjsLib) {
-                    this.label.textContent = 'PDF 预览暂不可用';
-                    this.note.textContent = '本地 PDF.js 文件未能加载，文字段落仍可查看。';
-                    return;
-                }
                 this.targetPage = Number.isInteger(Number(targetPage)) && Number(targetPage) > 0 ? Number(targetPage) : 1;
                 const version = ++this.version;
                 try {
+                    await ensurePdfLibrary();
+                    if (version !== this.version || this.destroyed) return;
                     this.loadingTask = pdfjsLib.getDocument({
                         url: `${API_BASE}/documents/${encodeURIComponent(documentId)}/file`,
                         httpHeaders: { 'X-Session-ID': sessionId || '' },
@@ -6097,7 +6462,7 @@
                     (fpage ? '<span aria-hidden="true">·</span><span class="ref-popover-page">' + escapeHtml(fpage.replace('頁', '页')) + '</span>' : '') +
                 '</div>' +
                 '<div class="ref-popover-text">' + escapeHtml(snip) + '</div>' +
-                '<div class="ref-popover-hint">點擊查看完整段落與上下文</div>';
+                '<div class="ref-popover-hint">' + (tag.dataset.sourceKind === 'web' ? '點擊查看網頁來源及原始連結' : '點擊查看完整段落與上下文') + '</div>';
             refPopover.classList.toggle('bottom-sheet', !!asSheet);
             refPopover.classList.add('is-visible');
             if (asSheet) {
@@ -6163,6 +6528,19 @@
             if (!badge) return;
             e.preventDefault();
             hideRefPopover(0);
+            if (badge.dataset.sourceKind === 'web') {
+                const sourceBar = badge.closest('.message-content')?.querySelector('.answer-sources');
+                const details = sourceBar?.querySelector('details');
+                const row = [...(sourceBar?.querySelectorAll('.answer-source-row') || [])].find(item => item.dataset.sourceKey === badge.dataset.sourceKey);
+                if (details && row) {
+                    details.open = true;
+                    row.classList.remove('is-highlighted'); void row.offsetWidth;
+                    row.classList.add('is-highlighted');
+                    row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    row.querySelector('a')?.focus({ preventScroll: true });
+                }
+                return;
+            }
             openSourceView(badge.dataset.doc, badge.dataset.chunk);
         });
 
@@ -6233,9 +6611,8 @@
 
             try {
                 let data;
-                if (_chunkCache.has(chunkId)) {
-                    data = _chunkCache.get(chunkId);
-                } else {
+                {
+                    const requestedSourceSession = sessionId;
                     const resp = await fetch(
                         `${API_BASE}/knowledge/chunks/${encodeURIComponent(chunkId)}`,
                         { headers: { 'X-Session-ID': sessionId || '' } }
@@ -6245,6 +6622,7 @@
                         throw new Error('HTTP ' + resp.status + (errTxt ? ' - ' + errTxt : ''));
                     }
                     data = (await resp.json()).data;
+                    if (requestedSourceSession !== sessionId || version !== sourceViewVersion) return;
                     _chunkCache.set(chunkId, data);
                 }
                 if (version !== sourceViewVersion) return;
@@ -6339,7 +6717,14 @@
                 if (!resp.ok) throw new Error('HTTP ' + resp.status);
                 const blob = await resp.blob();
                 const url = URL.createObjectURL(blob);
-                window.open(url, '_blank');
+                const popup = window.open('', '_blank');
+                if (popup) {
+                    popup.opener = null;
+                    const frame = popup.document.createElement('iframe');
+                    frame.setAttribute('sandbox', 'allow-scripts'); frame.src = url;
+                    frame.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;border:0';
+                    popup.document.body.replaceChildren(frame);
+                }
                 setTimeout(() => URL.revokeObjectURL(url), 60000);
             } catch (err) {
                 console.error('查看完整文件失敗:', err);
@@ -6348,24 +6733,195 @@
         }
 
         // ===================== 思考內容樣式渲染 =====================
-        function renderWithThinkStyling(rawText, citationMap, ungrounded = false) {
+        function renderMessageMarkdown(bubble, rawText, citationMap, ungrounded = false, webSources = []) {
+            bubble.innerHTML = renderWithThinkStyling(rawText, citationMap, ungrounded, webSources);
+            if (typeof marked === 'undefined') pendingMarkdownBubbles.set(bubble, [rawText, citationMap, ungrounded, webSources]);
+            else pendingMarkdownBubbles.delete(bubble);
+            if (bubble._answerSourceState) {
+                const state = bubble._answerSourceState;
+                renderAnswerSources(state.section, bubble, citationMap, webSources, state.webState);
+            }
+        }
+
+        function renderWithThinkStyling(rawText, citationMap, ungrounded = false, webSources = []) {
             /* 
             自動識別 `<think>...</think>` 片段，給思考內容套用小字淺灰樣式，
             最終答案保持正常大字黑色。不帶思考標記則原樣 Markdown 渲染。
             citationMap 存在時，將答案中的 [N] 標記轉為可點擊的溯源徽標。
             */
             if (!rawText) return '';
-            const thinkMatch = rawText.match(/<think>([\s\S]*?)<\/think>/);
-            if (thinkMatch) {
-                const thinkContent = thinkMatch[1].trim();
-                const answerContent = rawText.replace(thinkMatch[0], '').trim();
-                const thinkHtml = marked.parse(thinkContent);
-                const answerHtml = marked.parse(answerContent);
-                const combined = `<div class="think-section">${thinkHtml}</div>\n\n${answerHtml}`;
-                return ungrounded ? stripUnsupportedCitations(combined) : applyCitations(combined, citationMap);
-            }
-            const html = marked.parse(rawText);
-            return ungrounded ? stripUnsupportedCitations(html) : applyCitations(html, citationMap);
+            // 歷史訊息立即可讀，Markdown 套件尚未抵達時先安全顯示文字。
+            const parse = text => typeof marked !== 'undefined'
+                ? sanitizeAnswerHtml(marked.parse(text)) : escapeHtml(text).replace(/\n/g, '<br>');
+            // 思考過程（包括尚未閉合的流式片段）不算作答案證據。
+            const thinking = [];
+            const answerText = rawText.replace(/<think>([\s\S]*?)(?:<\/think>|$)/g, (_, text) => {
+                thinking.push(`<div class="think-section">${parse(text.trim())}</div>`); return '';
+            });
+            return thinking.join('\n') + applyAnswerCitations(parse(answerText.trim()), ungrounded ? [] : citationMap, webSources, ungrounded);
+        }
+
+        function safeWebUrl(value) {
+            if (typeof value !== 'string') return null;
+            try {
+                const url = new URL(value);
+                return ['http:', 'https:'].includes(url.protocol) && !url.username && !url.password ? url.href : null;
+            } catch (_) { return null; }
+        }
+
+        function sanitizeAnswerHtml(html) {
+            if (typeof DOMPurify === 'undefined') return escapeHtml(html);
+            return DOMPurify.sanitize(html, {
+                USE_PROFILES: { html: true },
+                FORBID_TAGS: ['style','form','input','button','iframe','object','embed','img','svg','math'],
+                FORBID_ATTR: ['style','id','name'], ALLOW_DATA_ATTR: false,
+            });
+        }
+
+        function normalizeWebSources(sources) {
+            const seen = new Set();
+            return (Array.isArray(sources) ? sources : []).filter(source => {
+                if (!source || typeof source !== 'object' || !/^W[1-9]\d*$/.test(source.id) || seen.has(source.id) || !safeWebUrl(source.url)) return false;
+                seen.add(source.id); return true;
+            }).map(source => ({ ...source, url: safeWebUrl(source.url),
+                title: String(source.title || source.url), snippet: String(source.snippet || ''),
+                content_status: ['fetched', 'snippet_only', 'unavailable'].includes(source.content_status) ? source.content_status : 'unavailable' }));
+        }
+
+        function hasWebEvidence(sources) {
+            return normalizeWebSources(sources).some(source => source.content_status === 'fetched' || source.snippet.trim().length > 0);
+        }
+
+        // 底層保留 W / 文件索引，顯示號碼按正文首次引用的順序統一編排。
+        function applyAnswerCitations(html, citations = [], sources = [], ungrounded = false) {
+            const web = new Map(normalizeWebSources(sources).filter(source => source.content_status === 'fetched' || source.snippet.trim()).map(source => [source.id, source]));
+            const files = new Map(normalizeCitationMap(citations).map(source => [String(source.index), source]));
+            const numbers = new Map();
+            const template = document.createElement('template');
+            template.innerHTML = html;
+            const walker = document.createTreeWalker(template.content, NodeFilter.SHOW_TEXT);
+            const nodes = [];
+            while (walker.nextNode()) if (!walker.currentNode.parentElement?.closest('a, pre, code, .think-section')) nodes.push(walker.currentNode);
+            nodes.forEach(node => {
+                const text = node.textContent;
+                const pattern = /\[(W[1-9]\d*|[1-9]\d*)\]/g;
+                let match, offset = 0;
+                const fragment = document.createDocumentFragment();
+                while ((match = pattern.exec(text))) {
+                    const id = match[1];
+                    const isWeb = id.startsWith('W');
+                    const source = isWeb ? web.get(id) : files.get(id);
+                    if (!source && !isWeb && !ungrounded) continue;
+                    fragment.append(document.createTextNode(text.slice(offset, match.index)));
+                    offset = pattern.lastIndex;
+                    if (!source) continue; // 無正文亦無摘要的頁面不可被標為證據。
+                    const key = `${isWeb ? 'web' : 'file'}:${id}`;
+                    if (!numbers.has(key)) numbers.set(key, numbers.size + 1);
+                    const anchor = source.citation || {};
+                    const badge = document.createElement('button');
+                    badge.type = 'button';
+                    badge.className = `answer-citation citation-badge ${isWeb ? 'web-ref' : 'ref-tag'}`;
+                    badge.textContent = String(numbers.get(key));
+                    badge.dataset.sourceKind = isWeb ? 'web' : 'file';
+                    badge.dataset.sourceKey = key;
+                    badge.dataset.sourceId = id;
+                    badge.dataset.idx = id;
+                    badge.dataset.filename = isWeb ? source.title : (source.filename || anchor.filename || '原文');
+                    badge.dataset.page = isWeb ? new URL(source.url).hostname : `第${source.page || anchor.page || '?'}頁`;
+                    badge.dataset.snippet = String(source.snippet || anchor.snippet || '').slice(0, 300);
+                    badge.title = `${badge.dataset.filename} · ${badge.dataset.page}`;
+                    badge.setAttribute('aria-label', `來源 ${numbers.get(key)}：${badge.title}`);
+                    if (!isWeb) {
+                        badge.dataset.doc = source.document_id || anchor.document_id || '';
+                        badge.dataset.chunk = source.chunk_id || anchor.chunk_id || '';
+                        badge.dataset.charStart = source.char_start ?? anchor.char_start ?? '';
+                        badge.dataset.charEnd = source.char_end ?? anchor.char_end ?? '';
+                    }
+                    fragment.append(badge);
+                }
+                if (offset) { fragment.append(document.createTextNode(text.slice(offset))); node.replaceWith(fragment); }
+            });
+            return template.innerHTML;
+        }
+
+        function applyWebCitations(html, sources) { return applyAnswerCitations(html, [], sources); }
+
+        function renderWebStatus(element, state) {
+            if (!element) return;
+            const status = typeof state?.status === 'string' ? state.status : '';
+            const progress = { processing: '正在搜尋並讀取網頁資料…', searching: '正在搜尋 Google 網頁…', fetching: '正在讀取網頁正文…' };
+            element.dataset.status = status;
+            element.textContent = progress[status] ? (state.message || progress[status]) : '';
+            element.hidden = !element.textContent;
+        }
+
+        function normalizeFileArtifacts(files) {
+            const seen = new Set();
+            return (Array.isArray(files) ? files : []).filter(file => file && typeof file === 'object').flatMap(file => {
+                const id = String(file.file_id ?? file.id ?? '');
+                // File IDs go through the existing authenticated endpoints; URLs and paths from model text are never used.
+                if (!/^[A-Za-z0-9_-]{1,180}$/.test(id) || seen.has(id)) return [];
+                const name = String(file.filename ?? file.name ?? '').trim();
+                if (!name) return [];
+                seen.add(id);
+                const size = Number(file.file_size ?? file.size ?? 0);
+                return [{ id, name: name.slice(0, 500), size: Number.isFinite(size) && size >= 0 ? size : 0,
+                    description: String(file.description ?? '').slice(0, 1000),
+                    version: Number.isSafeInteger(Number(file.version)) && Number(file.version) > 0 ? Number(file.version) : null,
+                    has_original: file.has_original !== false }];
+            });
+        }
+
+        function renderFileTaskStatus(element, state) {
+            if (!element) return;
+            const status = typeof state?.status === 'string' ? state.status : '';
+            const labels = { reading: '正在讀取資料…', analyzing: '正在分析內容…',
+                generating: '正在生成檔案…', editing: '正在修改檔案…',
+                validating: '正在檢查結果…', checking: '正在檢查結果…', error: '檔案處理失敗，請重試。' };
+            element.dataset.status = status;
+            element.textContent = labels[status] ? String(state.message || labels[status]).slice(0, 300) : '';
+            element.hidden = !element.textContent;
+        }
+
+        function renderFileArtifacts(section, files) {
+            if (!section) return;
+            const artifacts = normalizeFileArtifacts(files);
+            const signature = JSON.stringify(artifacts);
+            if (section._artifactSignature === signature) return;
+            section._artifactSignature = signature;
+            section.replaceChildren(); section.hidden = !artifacts.length;
+            artifacts.forEach(file => {
+                const extension = file.name.split('.').pop().toLowerCase();
+                const card = document.createElement('div'); card.className = 'message-artifact'; card.dataset.fileId = file.id;
+                const icon = document.createElement('span'); icon.className = 'message-artifact-icon'; icon.setAttribute('aria-hidden', 'true');
+                icon.textContent = extension === 'xlsx' ? '📊' : extension === 'pptx' ? '📽️' : extension === 'docx' ? '📝' : '📄';
+                const body = document.createElement('div'); body.className = 'message-artifact-body';
+                const name = document.createElement('div'); name.className = 'message-artifact-name'; name.textContent = file.name;
+                const meta = document.createElement('div'); meta.className = 'message-artifact-meta';
+                meta.textContent = [extension.toUpperCase(), file.size ? formatFileSize(file.size) : '', file.version ? `版本 ${file.version}` : ''].filter(Boolean).join(' · ');
+                body.append(name, meta);
+                if (file.description) {
+                    const description = document.createElement('div'); description.className = 'message-artifact-description';
+                    description.textContent = file.description; body.append(description);
+                }
+                const actions = document.createElement('div'); actions.className = 'message-artifact-actions';
+                const preview = document.createElement('button'); preview.type = 'button'; preview.textContent = '預覽';
+                preview.setAttribute('aria-label', `預覽 ${file.name}`);
+                preview.addEventListener('click', () => window.previewFile(file.id));
+                const download = document.createElement('button'); download.type = 'button'; download.textContent = '下載';
+                download.setAttribute('aria-label', `下載 ${file.name}`); download.disabled = !file.has_original;
+                download.addEventListener('click', () => window.downloadFile(file.id, file.has_original));
+                actions.append(preview, download); body.append(actions); card.append(icon, body); section.append(card);
+            });
+        }
+
+        function appendHistoricalArtifacts(contentEl, message) {
+            const files = message.artifacts ?? message.metadata?.artifacts;
+            if (!normalizeFileArtifacts(files).length) return;
+            const section = document.createElement('div'); section.className = 'message-artifacts';
+            section.setAttribute('aria-label', '生成的檔案');
+            contentEl.insertBefore(section, contentEl.querySelector('.message-meta'));
+            renderFileArtifacts(section, files);
         }
 
         function stripUnsupportedCitations(html) {
@@ -6402,36 +6958,7 @@
 
         // 將 Markdown 渲染後的 HTML 中出現的 [N] 引用標記轉為可點擊徽標
         // citationMap 每项同时保留扁平字段与 citation{文件/页/字符区间/片段}锚点
-        function applyCitations(html, citationMap) {
-            if (!citationMap || !citationMap.length) return html;
-            const map = {};
-            citationMap.forEach((c) => { if (c && c.index != null) map[c.index] = c; });
-            if (!Object.keys(map).length) return html;
-            // 將 HTML 拆成「標籤段 + 文字段」交替，只在文字段中替換 [N]，避免破壞標籤
-            return html.replace(/((?:<[^>]+>)*)([^<]*)/g, (m, tags, text) => {
-                let out = text || '';
-                if (out) {
-                    out = out.replace(/\[(\d+)\]/g, (mm, num) => {
-                        const idx = parseInt(num, 10);
-                        const c = map[idx];
-                        if (!c) return mm;
-                        const anchor = c.citation || {};
-                        const doc = escapeAttr(c.document_id || anchor.document_id);
-                        const chunk = escapeAttr(c.chunk_id || anchor.chunk_id);
-                        const page = c.page || anchor.page || '?';
-                        const filename = c.filename || anchor.filename || '原文';
-                        const title = escapeAttr(filename + ' 第' + page + '頁');
-                        const fname = escapeAttr(filename);
-                        const fpage = escapeAttr('第' + page + '頁');
-                        const snip = escapeAttr((c.snippet || anchor.snippet || '').slice(0, 300));
-                        const charStart = escapeAttr(c.char_start ?? anchor.char_start ?? '');
-                        const charEnd = escapeAttr(c.char_end ?? anchor.char_end ?? '');
-                        return `<span class="ref-tag" data-doc="${doc}" data-chunk="${chunk}" data-idx="${idx}" data-filename="${fname}" data-page="${fpage}" data-char-start="${charStart}" data-char-end="${charEnd}" data-snippet="${snip}" title="${title}">${idx}</span>`;
-                    });
-                }
-                return (tags || '') + out;
-            });
-        }
+        function applyCitations(html, citationMap) { return applyAnswerCitations(html, citationMap); }
 
         function normalizeCitationMap(chunks) {
             return (Array.isArray(chunks) ? chunks : []).filter(c => c && typeof c === 'object').map((c, i) => ({
@@ -6452,108 +6979,158 @@
         }
 
         function isNoRelevantContext(context) {
+            if (!context || context.status === 'skipped') return false;
             const emptyStatuses = ['no_relevant_context', 'retrieval_unavailable', 'retrieval_error'];
-            return !!context && (emptyStatuses.includes(context.status) || emptyStatuses.includes(context.type) ||
-                (Array.isArray(context.chunks) && context.chunks.length === 0));
+            return emptyStatuses.includes(context.status) || emptyStatuses.includes(context.type) ||
+                (Array.isArray(context.chunks) && context.chunks.length === 0);
         }
 
-        function renderRetrievalStatus(statusEl, chunks, answering = false, context = null) {
+        function renderRetrievalStatus(statusEl, chunks, answering = false, context = null, skillContext = null, webSources = [], webState = null) {
             if (!statusEl) return;
-            statusEl.classList.toggle('is-answering', answering);
-            const empty = (Array.isArray(chunks) && chunks.length === 0) || isNoRelevantContext(context);
-            statusEl.classList.toggle('is-empty', empty);
-            if (empty) {
-                statusEl.textContent = '⚠️ 知识库中未检索到相关资料，以下为一般性回答，未引用任何文件';
-                return;
-            }
-            if (!Array.isArray(chunks)) {
-                statusEl.textContent = '🔍 正在检索知识库…';
-                return;
-            }
-            const files = new Set(chunks.map(c => c.filename || '未知文件'));
-            const title = document.createElement('div');
-            title.textContent = `📚 已从 ${files.size} 个文件检索到 ${chunks.length} 段相关资料`;
-            const chips = document.createElement('div');
-            chips.className = 'retrieval-status-chips';
-            const seen = new Set();
-            [...chunks].sort((a, b) => (sourceScore(b) ?? -Infinity) - (sourceScore(a) ?? -Infinity))
-                .filter(c => {
-                    const key = JSON.stringify([c.filename, c.page]);
-                    if (seen.has(key)) return false;
-                    seen.add(key); return true;
-                }).slice(0, 5).forEach(c => {
-                    const chip = document.createElement('span');
-                    chip.className = 'retrieval-status-chip';
-                    chip.textContent = (c.filename || '未知文件') + (c.page != null ? ` · 第${c.page}页` : '');
-                    chip.title = chip.textContent;
-                    chips.appendChild(chip);
-                });
-            statusEl.replaceChildren(title, chips);
+            const webProgress = ['processing', 'searching', 'fetching'].includes(webState?.status);
+            statusEl.classList.remove('is-empty');
+            statusEl.hidden = answering || webProgress || context?.status === 'skipped' || isNoRelevantContext(context);
+            if (statusEl.hidden) { statusEl.textContent = ''; return; }
+            statusEl.textContent = Array.isArray(chunks) && chunks.length ? `已找到 ${chunks.length} 段候選資料，正在整理回答…` : '正在準備回答…';
         }
 
-        // 在 AI 回答卡片下方渲染「检索来源」区（基于 /api/chat 返回的 rag_context.chunks）
-        // 仅展示最高有效相似度严格超过 70% 的文件，按分数排序取前两个；保留完整引用映射。
-        function renderRetrievalSource(sectionEl, chunks, ragContext) {
-            if (!sectionEl) return;
-            const citations = normalizeCitationMap(chunks);
-            if (!citations.length) {
-                sectionEl.replaceChildren();
-                sectionEl.style.display = 'none';
-                return;
-            }
-            const files = new Map();
-            citations.forEach(c => {
-                const key = c.filename || '未知文件';
-                if (!files.has(key)) files.set(key, { first: c, pages: new Set(), score: null });
-                const file = files.get(key);
-                if (c.page != null) file.pages.add(c.page);
-                const score = sourceScore(c);
-                if (score != null) file.score = Math.max(file.score ?? -Infinity, score);
+        // 只列正文真正使用的證據；原始候選映射完整留在訊息 metadata 中。
+        function renderAnswerSources(section, bubble, citations = [], webSources = [], webState = null) {
+            if (!section || !bubble) return;
+            bubble._answerSourceState = { section, webState };
+            const files = new Map(normalizeCitationMap(citations).map(source => [String(source.index), source]));
+            const web = new Map(normalizeWebSources(webSources).map(source => [source.id, source]));
+            const used = new Map();
+            bubble.querySelectorAll('.answer-citation').forEach(badge => {
+                const key = badge.dataset.sourceKey;
+                const kind = badge.dataset.sourceKind;
+                const source = (kind === 'web' ? web : files).get(badge.dataset.sourceId);
+                if (source && !used.has(key)) used.set(key, { key, kind, source, number: badge.textContent });
             });
-            const top = [...files.values()].filter(file => file.score != null && file.score > 0.7).sort((a, b) => {
-                if (a.score === b.score) return 0;
-                if (a.score == null) return 1;
-                if (b.score == null) return -1;
-                return b.score - a.score;
-            }).slice(0, 2);
-            if (!top.length) {
-                sectionEl.replaceChildren();
-                sectionEl.style.display = 'none';
-                return;
+            const entries = [...used.values()];
+            // 只合併同一份文件，缺少文件 ID 的舊資料各自保留，避免同名誤合併。
+            const grouped = new Map();
+            entries.forEach(entry => {
+                const groupKey = entry.kind === 'file' && entry.source.document_id
+                    ? 'document:' + entry.source.document_id : entry.key;
+                if (!grouped.has(groupKey)) grouped.set(groupKey, { ...entry, references: [] });
+                grouped.get(groupKey).references.push(entry);
+            });
+            const sourceRows = [...grouped.values()];
+            const status = webState?.status || '';
+            const warning = ['error', 'no_results'].includes(status)
+                ? (status === 'no_results' ? '未找到可用的網頁資料' : /中斷/.test(webState?.message || '') ? '網頁處理中斷，請稍後重試' : '網頁搜尋暫時無法使用')
+                : '';
+            const snippetOnly = entries.some(entry => entry.kind === 'web' && entry.source.content_status !== 'fetched');
+            const fingerprint = JSON.stringify({ entries, warning, snippetOnly });
+            if (section._sourceFingerprint === fingerprint) return;
+            section._sourceFingerprint = fingerprint;
+            const wasOpen = section.querySelector('details')?.open || false;
+            section.replaceChildren(); section.hidden = !entries.length && !warning;
+            section.dataset.webStatus = status;
+            if (section.hidden) return;
+            if (!entries.length) {
+                const note = document.createElement('div'); note.className = 'answer-source-note';
+                note.setAttribute('role', 'status'); note.textContent = warning;
+                section.append(note); return;
             }
-            const details = document.createElement('details');
+            const webCount = entries.filter(entry => entry.kind === 'web').length;
+            const fileCount = sourceRows.filter(entry => entry.kind === 'file').length;
+            const details = document.createElement('details'); details.open = wasOpen;
             const summary = document.createElement('summary');
-            summary.textContent = `📎 ${files.size > 2 ? '主要参考来源' : '参考来源'}（${top.length} 个文件）`;
-            details.appendChild(summary);
-            top.forEach(file => {
-                const row = document.createElement('button');
-                row.type = 'button'; row.className = 'source-file-row';
-                row.dataset.doc = file.first.document_id || '';
-                row.dataset.chunk = file.first.chunk_id || '';
-                row.disabled = !row.dataset.chunk;
-                const pages = [...file.pages].sort((a, b) => String(a).localeCompare(String(b), 'zh', { numeric: true }));
-                const percentage = Math.round(Math.max(0, Math.min(1, file.score)) * 100);
-                const similarity = `相似度 ${percentage > 70 ? percentage + '%' : '>70%'}`;
-                row.textContent = `${file.first.filename || '未知文件'} · ${pages.length ? '第' + pages.join('、') + '页' : '页码未提供'} · ${similarity}`;
-                row.title = '点击查看该文件首个命中段落；相似度为该文件命中段落的最高向量分数';
-                details.appendChild(row);
+            const title = document.createElement('span'); title.className = 'answer-sources-title';
+            title.textContent = webCount && fileCount ? `來源｜網頁 ${webCount} 個・檔案 ${fileCount} 個` : webCount ? `🌐 網頁來源（${webCount}）` : `📎 檔案來源（${fileCount}）`;
+            summary.append(title);
+            if (snippetOnly || warning) {
+                const state = document.createElement('span'); state.className = 'answer-source-state';
+                state.textContent = warning || '部分為搜尋摘要'; summary.append(state);
+            }
+            details.append(summary);
+            const list = document.createElement('div'); list.className = 'answer-source-list';
+            sourceRows.forEach(({ key, kind, source, number, references }) => {
+                const row = document.createElement('div'); row.className = 'answer-source-row'; row.dataset.sourceKey = key;
+                if (kind === 'file') {
+                    row.classList.add('file-source-row', 'answer-source-file-row');
+                    row.classList.toggle('is-multi-reference', references.length > 3);
+                    const filename = source.filename || '原文';
+                    const numbers = document.createElement('div'); numbers.className = 'answer-source-numbers';
+                    const bindReference = (button, reference) => {
+                        button.type = 'button'; button.classList.add('answer-source-open');
+                        button.dataset.doc = reference.source.document_id || '';
+                        button.dataset.chunk = reference.source.chunk_id || '';
+                        button.disabled = !button.dataset.chunk;
+                    };
+                    references.forEach(reference => {
+                        const badge = document.createElement('button'); badge.className = 'answer-source-number';
+                        badge.textContent = reference.number;
+                        badge.dataset.sourceKey = reference.key;
+                        const page = reference.source.page;
+                        badge.setAttribute('aria-label', `引用 ${reference.number}：${filename}${page != null ? `，第 ${page} 頁` : ''}`);
+                        bindReference(badge, reference); numbers.append(badge);
+                    });
+                    const body = document.createElement('div'); body.className = 'answer-file-body';
+                    const target = references.find(reference => reference.source.chunk_id) || references[0];
+                    const heading = document.createElement('button');
+                    heading.className = 'answer-source-heading answer-source-title';
+                    heading.textContent = filename; heading.title = filename;
+                    bindReference(heading, target);
+                    const pages = [...new Set(references.map(reference => reference.source.page)
+                        .filter(page => page != null && String(page).trim()).map(page => String(page).trim()))]
+                        .sort((a, b) => a.localeCompare(b, 'zh-Hant', { numeric: true }));
+                    const detail = document.createElement('span'); detail.className = 'answer-source-pages';
+                    let pageLabel = pages.join('、');
+                    if (pages.length && pages.every(page => /^[1-9]\d*$/.test(page))) {
+                        const ranges = [];
+                        pages.map(Number).forEach(page => {
+                            const last = ranges.at(-1);
+                            if (last && page === last[1] + 1) last[1] = page;
+                            else ranges.push([page, page]);
+                        });
+                        pageLabel = ranges.map(([start, end]) => start === end ? String(start)
+                            : end === start + 1 ? `${start}、${end}` : `${start}–${end}`).join('、');
+                    }
+                    detail.textContent = pages.length ? `第 ${pageLabel} 頁` : '頁碼未提供';
+                    detail.title = pages.length ? `第 ${pages.join('、')} 頁` : detail.textContent;
+                    const open = document.createElement('button'); open.className = 'answer-source-action';
+                    open.textContent = '查看'; open.setAttribute('aria-label', `查看 ${filename}`);
+                    bindReference(open, target);
+                    body.append(heading, detail, open); row.append(numbers, body); list.append(row);
+                    return;
+                }
+                const badge = document.createElement('span'); badge.className = 'answer-source-number'; badge.textContent = number;
+                const body = document.createElement('div');
+                const heading = document.createElement('a'); heading.className = 'answer-source-heading';
+                const detail = document.createElement('div'); detail.className = 'answer-source-detail';
+                row.classList.add('web-source-row');
+                heading.textContent = source.title; heading.href = source.url; heading.target = '_blank'; heading.rel = 'noopener noreferrer';
+                const labels = { fetched: '已讀取正文', snippet_only: '僅搜尋摘要', unavailable: '正文未能讀取' };
+                detail.textContent = `${new URL(source.url).hostname} · ${labels[source.content_status]}${source.truncated ? ' · 正文已節錄' : ''}`;
+                body.append(heading, detail);
+                const excerpt = source.body_excerpt || source.excerpt || source.snippet || '';
+                if (excerpt) {
+                    const text = document.createElement('p'); text.className = 'answer-source-excerpt';
+                    const label = source.body_excerpt || source.excerpt ? '正文節錄：' : '搜尋摘要：';
+                    text.textContent = label + String(excerpt); body.append(text);
+                }
+                row.append(badge, body); list.append(row);
             });
-            sectionEl.replaceChildren(details);
-            sectionEl.style.display = '';
+            details.append(list); section.append(details);
         }
 
         document.addEventListener('click', e => {
-            const row = e.target.closest('.source-file-row');
+            const row = e.target.closest('.answer-source-open');
             if (row && row.dataset.chunk) openSourceView(row.dataset.doc, row.dataset.chunk);
         });
 
         function appendHistoricalSources(contentEl, message) {
-            const citations = normalizeCitationMap(message.citation_map ?? message.citationMap);
-            if (!citations.length) return;
-            const section = document.createElement('div');
-            section.className = 'retrieval-source';
-            renderRetrievalSource(section, citations);
-            if (section.style.display !== 'none') contentEl.appendChild(section);
+            appendHistoricalSkill(contentEl, message);
+            appendHistoricalArtifacts(contentEl, message);
+            const bubble = contentEl.querySelector('.message-bubble');
+            if (!bubble) return;
+            const section = document.createElement('div'); section.className = 'answer-sources';
+            contentEl.insertBefore(section, bubble);
+            renderAnswerSources(section, bubble, message.citation_map ?? message.citationMap ?? message.metadata?.citation_map,
+                message.web_sources ?? message.metadata?.web_sources, message.web_status ?? message.metadata?.web_status);
         }
         
         // ===================== 流式逐字輸出 =====================
@@ -6578,12 +7155,12 @@
             document.querySelectorAll('.message-bubble.markdown-content').forEach(el => {
                 if (!el.textContent.trim()) {
                     const row = el.closest('.message-row');
-                    if (row) row.remove();
+                    if (row && !row.querySelector('.message-artifact')) row.remove();
                 }
             });
         }
         
-        function createStreamingBubble() {
+        function createStreamingBubble(skillId = null) {
             /* v5.1: 創建流式 AI 消息氣泡，不再使用獨立 streamingContent div，
                改為直接在 bubble 上即時渲染 Markdown → HTML */
             cleanupStaleStreams();
@@ -6593,10 +7170,14 @@
             
             const messageRow = document.createElement('div');
             messageRow.className = 'message-row ai';
-            messageRow.style.opacity = '0';
+            messageRow.style.opacity = '1';
             
             const messageContent = document.createElement('div');
             messageContent.className = 'message-content';
+
+            const skillLabel = document.createElement('div');
+            skillLabel.className = 'answer-skill-label';
+            messageContent.appendChild(skillLabel);
             
             const retrievalStatus = document.createElement('div');
             retrievalStatus.className = 'retrieval-status';
@@ -6604,6 +7185,16 @@
             retrievalStatus.setAttribute('aria-live', 'polite');
             renderRetrievalStatus(retrievalStatus, null);
             messageContent.appendChild(retrievalStatus);
+
+            const webStatus = document.createElement('div');
+            webStatus.className = 'web-status'; webStatus.hidden = true;
+            webStatus.setAttribute('role', 'status'); webStatus.setAttribute('aria-live', 'polite');
+            messageContent.appendChild(webStatus);
+
+            const fileStatus = document.createElement('div');
+            fileStatus.className = 'file-task-status'; fileStatus.hidden = true;
+            fileStatus.setAttribute('role', 'status'); fileStatus.setAttribute('aria-live', 'polite');
+            messageContent.appendChild(fileStatus);
 
             const bubble = document.createElement('div');
             // 【v5.1】從一開始就加上 markdown-content，流式過程中直接渲染 HTML
@@ -6629,28 +7220,36 @@
             meta.appendChild(timerSpan);
             
             messageContent.appendChild(bubble);
+            const artifactSection = document.createElement('div');
+            artifactSection.className = 'message-artifacts'; artifactSection.hidden = true;
+            artifactSection.setAttribute('aria-label', '生成的檔案');
+            messageContent.appendChild(artifactSection);
             messageContent.appendChild(meta);
 
-            // 检索来源区：默认隐藏，流式结束且存在 rag_context 时由 renderRetrievalSource 填充
+            // 來源與正文使用同一組引用資料，收到內容後立即同步。
             const sourceSection = document.createElement('div');
-            sourceSection.className = 'retrieval-source';
-            sourceSection.style.display = 'none';
-            messageContent.appendChild(sourceSection);
+            sourceSection.className = 'answer-sources';
+            sourceSection.hidden = true;
+            messageContent.insertBefore(sourceSection, bubble);
+
+            const webSection = document.createElement('div');
+            webSection.className = 'retrieval-source web-sources'; webSection.hidden = true;
+            messageContent.appendChild(webSection);
+
+            renderAnswerSkill(skillLabel, skillId ? { skill_id: skillId, status: 'loading' } : null, skillId);
 
             messageRow.appendChild(messageContent);
             messagesContainer.appendChild(messageRow);
             
-            requestAnimationFrame(() => {
-                messageRow.style.opacity = '1';
-            });
-            scrollMessagesToBottom('smooth');
+            scrollMessagesToBottom('auto');
             
-            return { row: messageRow, bubble, loadingDiv, timerSpan, sourceSection, retrievalStatus };
+            return { row: messageRow, bubble, loadingDiv, timerSpan, sourceSection, retrievalStatus, skillLabel, webStatus, webSection, fileStatus, artifactSection };
         }
         
         async function sendMessage() {
             const message = messageInput.value.trim();
             if (!message || isLoading || !sessionId) return;
+            const requestSkillId = selectedSkillId;
 
             // 讀取檔案引用標籤，拼接 [檔案名] 前綴
             let fileRefPrefix = '';
@@ -6674,7 +7273,7 @@
 
             // 停用發送按鈕
             sendBtn.classList.add('sending');
-            sendBtn.innerHTML = '';
+            sendBtn.innerHTML = '<i class="fa fa-paper-plane"></i>';
             isLoading = true;
             sendBtn.disabled = true;
             
@@ -6688,7 +7287,13 @@
             const isThinkActive = activeModes.includes('think');
             const isSearchActive = activeModes.includes('search');
             const isTraceActive = true;  // 默认自动跨库溯源，无需手动开关
-            const { bubble, loadingDiv, timerSpan, sourceSection, retrievalStatus } = createStreamingBubble();
+            const { bubble, loadingDiv, timerSpan, sourceSection, retrievalStatus, skillLabel, webStatus, webSection, fileStatus, artifactSection } = createStreamingBubble(requestSkillId);
+            let answerSkillContext = null;
+            let fileTaskState = null;
+            let fileArtifacts = [];
+            let webSources = [];
+            let webState = isSearchActive ? { status: 'searching', message: '正在準備網頁搜尋…' } : null;
+            renderWebStatus(webStatus, webState, webSources);
             let fullText = '';
             let hasError = false;
             let contentStarted = false;  // 標記是否已收到內容
@@ -6700,7 +7305,7 @@
             let _rafId = null;
             function _renderNow() {
                 /* 即時將 fullText 渲染為 HTML 並更新 bubble，智能滾動 */
-                bubble.innerHTML = renderWithThinkStyling(fullText, citationMap, isNoRelevantContext(ragContext));
+                renderMessageMarkdown(bubble, fullText, citationMap, isNoRelevantContext(ragContext), webSources);
                 timerSpan.textContent = '已生成 ' + ((Date.now() - startTime) / 1000).toFixed(1) + ' 秒';
                 // 智能滾動：僅在用戶位於底部時自動跟隨
                 if (isNearBottom(50)) {
@@ -6725,17 +7330,55 @@
                 _renderNow();
             }
 
+            function _finishInterruptedWeb() {
+                if (!webState || !['processing', 'searching', 'fetching'].includes(webState.status)) return;
+                webState = { status: hasWebEvidence(webSources) ? 'partial' : 'error', message: '網頁處理中斷，請依已顯示的來源狀態判斷資料是否完整。' };
+                renderWebStatus(webStatus, webState, webSources);
+                renderRetrievalStatus(retrievalStatus, citationMap, true, ragContext, answerSkillContext, webSources, webState);
+            }
+
+            function _finishInterruptedFile() {
+                if (!fileTaskState || ['complete', 'error'].includes(fileTaskState.status)) return;
+                fileTaskState = { status: 'error', message: '檔案處理中斷，請重試。未完成的檔案不會提供下載。' };
+                renderFileTaskStatus(fileStatus, fileTaskState);
+                retrievalStatus.hidden = true;
+                bubble.hidden = false;
+            }
+
             function _handleStreamEvent(eventData) {
                 const evtType = eventData.type;
-                if (evtType === 'rag_context' || ['no_relevant_context', 'retrieval_unavailable', 'retrieval_error'].includes(evtType)) {
+                if (evtType === 'file_status') {
+                    fileTaskState = eventData;
+                    renderFileTaskStatus(fileStatus, fileTaskState);
+                    webState = null;
+                    renderWebStatus(webStatus, webState);
+                    retrievalStatus.hidden = true;
+                    if (!contentStarted) { loadingDiv.style.display = 'none'; bubble.hidden = fileTaskState.status !== 'error'; }
+                } else if (evtType === 'artifacts') {
+                    fileArtifacts = normalizeFileArtifacts(eventData.artifacts ?? eventData.files);
+                    renderFileArtifacts(artifactSection, fileArtifacts);
+                    if (isNearBottom(80)) scrollMessagesToBottom('auto');
+                } else if (evtType === 'web_status' || evtType === 'web_sources') {
+                    if (evtType === 'web_sources') webSources = normalizeWebSources(eventData.sources);
+                    webState = { status: eventData.status, message: eventData.message };
+                    renderWebStatus(webStatus, webState, webSources);
+                    renderAnswerSources(sourceSection, bubble, citationMap, webSources, webState);
+                    renderRetrievalStatus(retrievalStatus, citationMap, contentStarted, ragContext, answerSkillContext, webSources, webState);
+                    if (fullText) _scheduleRender();
+                } else if (evtType === 'skill_context') {
+                    answerSkillContext = eventData;
+                    renderAnswerSkill(skillLabel, answerSkillContext, requestSkillId);
+                    if (ragContext) renderRetrievalStatus(retrievalStatus, citationMap, contentStarted, ragContext, answerSkillContext, webSources, webState);
+                } else if (evtType === 'rag_context' || ['no_relevant_context', 'retrieval_unavailable', 'retrieval_error'].includes(evtType)) {
                     ragContext = eventData;
                     citationMap = isNoRelevantContext(eventData) ? [] : normalizeCitationMap(eventData.chunks);
-                    renderRetrievalStatus(retrievalStatus, citationMap, contentStarted, ragContext);
+                    renderRetrievalStatus(retrievalStatus, citationMap, contentStarted, ragContext, answerSkillContext, webSources, webState);
                     if (fullText) _scheduleRender();
                 } else if (evtType === 'content') {
                     const text = eventData.text || '';
                     if (!text) return;
                     fullText += text;
+                    bubble.hidden = false;
                     if (!contentStarted) {
                         contentStarted = true;
                         loadingDiv.style.display = 'none';
@@ -6743,6 +7386,23 @@
                         _renderNow();
                     } else _scheduleRender();
                 } else if (evtType === 'done') {
+                    if (Array.isArray(eventData.artifacts)) {
+                        fileArtifacts = normalizeFileArtifacts(eventData.artifacts);
+                        renderFileArtifacts(artifactSection, fileArtifacts);
+                    }
+                    if (fileTaskState) {
+                        fileTaskState = { status: 'complete' };
+                        renderFileTaskStatus(fileStatus, fileTaskState);
+                    }
+                    bubble.hidden = !fullText && fileArtifacts.length > 0;
+                    if (Array.isArray(eventData.web_sources)) webSources = normalizeWebSources(eventData.web_sources);
+                    if (eventData.web_status) webState = eventData.web_status;
+                    renderWebStatus(webStatus, webState, webSources);
+                    renderAnswerSources(sourceSection, bubble, citationMap, webSources, webState);
+                    if (eventData.skill_context) {
+                        answerSkillContext = eventData.skill_context;
+                        renderAnswerSkill(skillLabel, answerSkillContext, requestSkillId);
+                    }
                     if (Array.isArray(eventData.citation_map)) {
                         const previous = new Map(citationMap.map(c => [c.chunk_id, c]));
                         citationMap = normalizeCitationMap(eventData.citation_map).map(c => ({ ...previous.get(c.chunk_id), ...c }));
@@ -6751,21 +7411,28 @@
                     if (eventData.rag_status) ragContext = { ...ragContext, ...eventData.rag_status };
                     if (isNoRelevantContext(ragContext)) citationMap = [];
                     if (ragContext || Array.isArray(eventData.citation_map)) {
-                        renderRetrievalStatus(retrievalStatus, citationMap, true, ragContext);
+                        renderRetrievalStatus(retrievalStatus, citationMap, true, ragContext, answerSkillContext, webSources, webState);
                     }
                     loadingDiv.style.display = 'none';
                     bubble.classList.remove('streaming');
                     _flushRender();
-                    renderRetrievalSource(sourceSection, citationMap, ragContext);
+                    renderAnswerSources(sourceSection, bubble, citationMap, webSources, webState);
                     loadConversationHistory();
+                    void refreshConversationCache();
+                    if (fileArtifacts.length) void loadFiles();
                 } else if (evtType === 'error') {
                     hasError = true;
+                    _finishInterruptedWeb();
+                    _finishInterruptedFile();
+                    if (requestSkillId && !answerSkillContext) renderAnswerSkill(skillLabel, { skill_id: requestSkillId, status: 'unconfirmed' }, requestSkillId);
                     loadingDiv.style.display = 'none';
                     bubble.classList.remove('streaming');
+                    bubble.hidden = false;
                     fullText = eventData.detail || '抱歉，回覆中斷。';
-                    if (!ragContext) retrievalStatus.textContent = '检索或回答中断，请重试';
+                    if (!ragContext && !fileTaskState) retrievalStatus.textContent = '检索或回答中断，请重试';
                     _flushRender();
                 }
+                if (fileTaskState) retrievalStatus.hidden = true;
             }
             
             try {
@@ -6775,9 +7442,14 @@
                 const requestBody = {
                     question: fullMessage,
                     session_id: sessionId,
+                    skill_id: requestSkillId,
                     think: isThinkActive,
                     search: isSearchActive,
                     trace: isTraceActive,
+                    file_ids: (function() {
+                        const container = document.getElementById('file-tags-container');
+                        return container ? [...container.querySelectorAll('.file-tag')].map(tag => tag.dataset.fileId).filter(Boolean) : [];
+                    })(),
                     file_references: (function() {
                         try {
                             const container = document.getElementById('file-tags-container');
@@ -6808,7 +7480,13 @@
                 });
                 
                 if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
+                    const failure = new Error(`HTTP ${response.status}`);
+                    try {
+                        const data = await response.json();
+                        const detail = data.detail ?? data.message ?? data.error;
+                        if (typeof detail === 'string' && detail.trim()) failure.userMessage = detail.slice(0, 500);
+                    } catch (_) {}
+                    throw failure;
                 }
                 
                 const reader = response.body.getReader();
@@ -6855,14 +7533,18 @@
                 
                 // 流正常結束但未收到 done 事件 → 兜底渲染
                 if (!hasError) {
+                    if (requestSkillId && !answerSkillContext) renderAnswerSkill(skillLabel, { skill_id: requestSkillId, status: 'unconfirmed' }, requestSkillId);
                     if (bubble.classList.contains('streaming')) {
+                        _finishInterruptedWeb();
+                        _finishInterruptedFile();
                         loadingDiv.style.display = 'none';
                         bubble.classList.remove('streaming');
                         if (!fullText) fullText = '回答中断，请重试。';
-                        if (!ragContext) retrievalStatus.textContent = '检索或回答中断，请重试';
+                        if (!ragContext && !fileTaskState) retrievalStatus.textContent = '检索或回答中断，请重试';
                         _flushRender();
-                        renderRetrievalSource(sourceSection, citationMap, ragContext);
+                        renderAnswerSources(sourceSection, bubble, citationMap, webSources, webState);
                         loadConversationHistory();
+                        void refreshConversationCache();
                     }
                 }
                 
@@ -6871,11 +7553,15 @@
                     return;
                 }
                 console.error('流式請求失敗:', error);
+                _finishInterruptedWeb();
+                _finishInterruptedFile();
                 loadingDiv.style.display = 'none';
                 bubble.classList.remove('streaming');
                 bubble.classList.add('markdown-content');
-                fullText = fullText || '抱歉，發送消息失敗，請重試。';
-                if (!ragContext) retrievalStatus.textContent = '检索或回答中断，请重试';
+                fullText = fullText || error.userMessage || '抱歉，發送消息失敗，請重試。';
+                if (requestSkillId && !answerSkillContext) renderAnswerSkill(skillLabel, { skill_id: requestSkillId, status: 'unconfirmed' }, requestSkillId);
+                if (!ragContext && !fileTaskState) retrievalStatus.textContent = '检索或回答中断，请重试';
+                if (error.userMessage) retrievalStatus.hidden = true;
                 _flushRender();
             } finally {
                 isLoading = false;
@@ -6926,7 +7612,7 @@
 
         function categorizeRequiredComplete(item) {
             const values = item.values;
-            return Boolean(values.audience && values.study_period && values.subject && values.material_type &&
+            return Boolean(!item.analysisError && values.audience && values.study_period && values.subject && values.material_type &&
                 (values.material_type !== 'other' || values.material_custom.trim()) &&
                 (!requiresPublishingClass(item) || values.target_class));
         }
@@ -7017,8 +7703,24 @@
             confirm.textContent = state.submitting ? (needsReview ? '提交中…' : '上傳中…') : needsReview ? '提交審核' : '確認上傳';
         }
 
+        function clearRedundantCategorizeNotes(item) {
+            // 只清理 AI 填寫的重複備註；人工備註（包括刪空）一律保留。
+            if (item.touched.has('notes') || !item.values.notes) return false;
+            const normalize = value => String(value || '').normalize('NFKC').toLowerCase().replace(/[\s\p{P}]/gu, '');
+            const input = document.getElementById(categorizeFieldIds.material_type);
+            const option = Array.from(input.options).find(entry => entry.value === item.values.material_type);
+            const labels = item.values.material_type === 'other' ? [item.values.material_custom] :
+                [option?.textContent, ...(option?.textContent || '').split('/')];
+            if (!labels.some(label => normalize(label) && normalize(label) === normalize(item.values.notes))) return false;
+            item.values.notes = '';
+            return true;
+        }
+
         function applyCategorizeSuggestion(item, data) {
             // 系統月份與 AI 建議只可選既有枚舉；任何人工操作（包括刪空）都有優先權。
+            if (!item.touched.has('audience') && ['personal', 'class', 'grade', 'school'].includes(data.audience)) {
+                item.values.audience = data.audience;
+            }
             for (const field of ['subject', 'study_period', 'material_type']) {
                 if (item.touched.has(field)) continue;
                 const input = document.getElementById(categorizeFieldIds[field]);
@@ -7029,6 +7731,7 @@
                 item.values.material_custom = typeof data.material_custom === 'string' ? data.material_custom.slice(0, 50) : '';
             }
             if (!item.touched.has('notes')) item.values.notes = typeof data.notes === 'string' ? data.notes.slice(0, 5) : '';
+            clearRedundantCategorizeNotes(item);
             item.possibleDuplicate = data.possible_duplicate === true;
             item.originalFingerprint = typeof data.original_sha256 === 'string' ? data.original_sha256 : '';
             item.textFingerprint = typeof data.text_sha256 === 'string' ? data.text_sha256 : '';
@@ -7044,10 +7747,12 @@
                 let received = 0, buffer = '', result = null, settled = false;
                 const handleEvent = event => {
                     if (!categorizeIsCurrent(state)) return;
-                    if (event.type === 'ocr_started') {
+                    if (event.type === 'error') {
+                        item.analysisError = typeof event.detail === 'string' ? event.detail.slice(0, 300) : '文件超出處理限制，請分拆後重試。';
+                    } else if (event.type === 'ocr_started') {
                         const total = Number.isInteger(event.total) && event.total > 0 ? event.total : null;
                         item.analysisUpload = null;
-                        item.analysisStatus = '';
+                        item.analysisStatus = item.analysisError || '';
                         item.ocr = { label: 'OCR 識別', percent: total ? 0 : null, text: total ? '0 / ' + total + ' 頁 · 0%' : '正在識別', total };
                     } else if (event.type === 'ocr_progress') {
                         const completed = Math.max(0, Number(event.completed) || 0);
@@ -7083,7 +7788,7 @@
                     if (categorizeIsCurrent(state)) {
                         item.analyzing = false;
                         item.analysisUpload = null;
-                        item.analysisStatus = '';
+                        item.analysisStatus = item.analysisError || '';
                         if (success && result) {
                             applyCategorizeSuggestion(item, result);
                             const identified = item.extraction?.content && !['failed', 'empty', 'skipped'].includes(item.extraction.extraction_status);
@@ -7119,6 +7824,10 @@
                 request.onprogress = () => { if (request.status >= 200 && request.status < 300) consume(false); };
                 request.onload = () => {
                     if (request.status >= 200 && request.status < 300) consume(true);
+                    else if ([413, 429].includes(request.status)) {
+                        try { item.analysisError = JSON.parse(request.responseText).detail; } catch (_) {}
+                        if (typeof item.analysisError !== 'string') item.analysisError = '文件超限或服務繁忙，請稍後重新選取文件。';
+                    }
                     finish(request.status >= 200 && request.status < 300 && Boolean(result));
                 };
                 request.onerror = request.ontimeout = request.onabort = () => finish(false);
@@ -7195,6 +7904,9 @@
                     if (!state || !categorizeIsCurrent(state) || !item || state.submitting || item.uploaded) return;
                     item.values[field] = input.value;
                     item.touched.add(field);
+                    if (['material_type', 'material_custom'].includes(field) && clearRedundantCategorizeNotes(item)) {
+                        document.getElementById(categorizeFieldIds.notes).value = item.values.notes;
+                    }
                     renderCategorizeDialog();
                 });
             }
@@ -7349,7 +8061,7 @@
                         <i class="fa ${statusIcon} ${statusColor}"></i>
                     </div>
                     <div class="file-message-info">
-                        <div class="file-message-name">${fileData.name}</div>
+                        <div class="file-message-name">${escapeHtml(fileData.name)}</div>
                         <div class="file-message-type">${'📁 ' + (fileData.audience === 'school' ? '學校' : fileData.audience === 'personal' ? '個人' : fileData.audience)}</div>
                     </div>
                     <div class="file-message-status ${fileData.status === 'error' ? 'error' : ''}">
@@ -7493,7 +8205,7 @@
                 console.log('[loadFiles] 響應狀態:', response.status);
                 const data = await response.json();
                 if (requestedSession !== sessionId || generation !== filesLoadGeneration || logoutInProgress) return;
-                console.log('[loadFiles] 響應數據:', data);
+                if (response.status === 401 || data.code === 401) { invalidateStartupSession(requestedSession); return; }
                 
                 if (data.code === 200) {
                     // 兼容新舊格式：新格式用 data.files，舊格式合併 public_files + private_files
@@ -7508,8 +8220,9 @@
                             ...(data.data.private_files || [])
                         ];
                     }
-                    console.log('[loadFiles] 獲取到檔案數量:', files.length, '檔案列表:', files);
-                    renderFiles(files);
+                    fileCatalog = files;
+                    renderFiles(fileCatalog);
+                    saveStartupCache();
                 } else {
                     console.error('[loadFiles] 加載失敗:', data);
                 }
@@ -7557,6 +8270,7 @@
                 console.log('響應數據:', data);
                 
                 if (data.code === 200) {
+                    _chunkCache.clear(); closeSourceView();
                     showToast('刪除成功', 'success');
                     loadFiles(); // 重新整理檔案列表
                 } else {
@@ -7569,9 +8283,9 @@
         }
         
         // 篩選欄變更時重新渲染
-        document.getElementById('filter-subject').addEventListener('change', () => loadFiles());
-        document.getElementById('filter-type').addEventListener('change', () => loadFiles());
-        
+        document.getElementById('filter-subject').addEventListener('change', () => renderFiles(fileCatalog));
+        document.getElementById('filter-type').addEventListener('change', () => renderFiles(fileCatalog));
+
         // ===================== 審核發布 =====================
         let reviewData = { is_teacher: false, reviewing: [], published: [] };
         let reviewTab = 'reviewing';
@@ -7579,6 +8293,51 @@
         let reviewGeneration = 0;
         let reviewMutation = false;
         let reviewReturnFocus = null;
+        let reviewIdentity = '';
+        let reviewHasData = false;
+        let reviewCachedAt = 0;
+        let reviewFreshAt = 0;
+        let reviewRenderedState = null;
+        const REVIEW_CACHE_MAX_AGE = 12 * 60 * 60 * 1000;
+
+        function currentReviewIdentity() {
+            const account = currentAccountProfile().account;
+            return sessionId && account ? JSON.stringify([sessionId, account, isTeacherAccount()]) : '';
+        }
+
+        function validReviewData(data) {
+            return data && typeof data.is_teacher === 'boolean' &&
+                data.is_teacher === isTeacherAccount() && ['reviewing', 'published'].every(key =>
+                    Array.isArray(data[key]) && data[key].every(file => file && typeof file.id === 'string'));
+        }
+
+        function hydrateReviewData() {
+            const identity = currentReviewIdentity();
+            if (reviewIdentity !== identity) {
+                ++reviewGeneration;
+                reviewRequest?.controller.abort(); reviewRequest = null;
+                reviewIdentity = identity;
+                reviewData = { is_teacher: isTeacherAccount(), reviewing: [], published: [] };
+                reviewHasData = false; reviewCachedAt = 0; reviewFreshAt = 0; reviewMutation = false;
+            }
+            const age = Date.now() - reviewCachedAt;
+            if (reviewHasData && age >= 0 && age < REVIEW_CACHE_MAX_AGE) return;
+            const cached = identity ? readPanelCache('reviews') : null;
+            reviewHasData = Boolean(validReviewData(cached));
+            reviewData = reviewHasData ? cached : { is_teacher: isTeacherAccount(), reviewing: [], published: [] };
+            reviewCachedAt = reviewHasData ? Date.now() : 0;
+        }
+
+        window.clearReviewPanelCache = function(id = sessionId) {
+            try { sessionStorage.removeItem('houkong.panel.v1:reviews:' + id); } catch (_) {}
+            if (reviewIdentity && JSON.parse(reviewIdentity)[0] !== id) return;
+            ++reviewGeneration;
+            reviewRequest?.controller.abort(); reviewRequest = null;
+            reviewIdentity = ''; reviewHasData = false; reviewCachedAt = 0; reviewFreshAt = 0; reviewMutation = false;
+            reviewRenderedState = null;
+            reviewData = { is_teacher: false, reviewing: [], published: [] };
+            setReviewFeedback();
+        };
 
         function setReviewFeedback(message = '', isError = false) {
             const feedback = document.getElementById('review-feedback');
@@ -7588,8 +8347,13 @@
         }
 
         function renderReviewPanel() {
+            if (document.getElementById('review-overlay')?.hidden !== false) return;
             const list = document.getElementById('review-list');
             if (!list) return;
+            if (reviewRenderedState?.identity === reviewIdentity && reviewRenderedState.data === reviewData &&
+                reviewRenderedState.tab === reviewTab && reviewRenderedState.mutation === reviewMutation &&
+                reviewRenderedState.hasData === reviewHasData) return;
+            reviewRenderedState = { identity: reviewIdentity, data: reviewData, tab: reviewTab, mutation: reviewMutation, hasData: reviewHasData };
             document.getElementById('review-description').textContent = reviewData.is_teacher
                 ? '查看學生提交的共享資料，預覽後通過發布或退回修改。'
                 : '查看自己提交的共享資料，以及目前可見的已發布資料。個人文件無需審核。';
@@ -7597,7 +8361,7 @@
                 const tab = document.getElementById('review-tab-' + key);
                 tab.setAttribute('aria-selected', String(reviewTab === key));
                 tab.tabIndex = reviewTab === key ? 0 : -1;
-                document.getElementById('review-count-' + key).textContent = String(reviewData[key].length);
+                document.getElementById('review-count-' + key).textContent = reviewHasData ? String(reviewData[key].length) : '—';
             }
             list.setAttribute('aria-labelledby', 'review-tab-' + reviewTab);
             list.replaceChildren();
@@ -7605,7 +8369,7 @@
             if (!files.length) {
                 const empty = document.createElement('div');
                 empty.className = 'review-empty';
-                empty.textContent = reviewTab === 'reviewing' ? '暫無審核中的檔案' : '暫無已發布檔案';
+                empty.textContent = !reviewHasData ? '尚無已保存的審核資料' : reviewTab === 'reviewing' ? '暫無審核中的檔案' : '暫無已發布檔案';
                 list.appendChild(empty);
                 return;
             }
@@ -7649,48 +8413,63 @@
             }
         }
 
-        async function loadReviewFiles() {
-            if (!sessionId || logoutInProgress) return;
-            reviewRequest?.abort();
-            const controller = new AbortController(); reviewRequest = controller;
-            const generation = ++reviewGeneration, requestedSession = sessionId;
-            setReviewFeedback('正在載入檔案…');
-            try {
-                const response = await fetch(`${API_BASE}/reviews`, { headers: { 'X-Session-ID': requestedSession }, signal: controller.signal });
-                const payload = await response.json();
-                if (generation !== reviewGeneration || requestedSession !== sessionId || logoutInProgress) return;
-                if (!response.ok || payload.code !== 200) throw new Error(typeof payload.detail === 'string' ? payload.detail : payload.message || '審核資料載入失敗，請重試');
-                reviewData = {
-                    is_teacher: payload.data?.is_teacher === true,
-                    reviewing: Array.isArray(payload.data?.reviewing) ? payload.data.reviewing : [],
-                    published: Array.isArray(payload.data?.published) ? payload.data.published : []
-                };
-                renderReviewPanel(); setReviewFeedback();
-            } catch (error) {
-                if (error.name !== 'AbortError' && generation === reviewGeneration && requestedSession === sessionId && !logoutInProgress) {
-                    setReviewFeedback(error.message || '審核資料載入失敗，請重試', true);
+        function loadReviewFiles({ force = false, afterMutation = false } = {}) {
+            if (!sessionId || logoutInProgress) return Promise.resolve();
+            hydrateReviewData();
+            if (!reviewIdentity || (reviewMutation && !afterMutation)) return Promise.resolve();
+            if (reviewRequest && !force) return reviewRequest.promise;
+            if (!force && Date.now() - reviewFreshAt >= 0 && Date.now() - reviewFreshAt < 5000) return Promise.resolve();
+            reviewRequest?.controller.abort();
+            const request = {
+                controller: new AbortController(), identity: reviewIdentity,
+                generation: ++reviewGeneration, session: sessionId, promise: null
+            };
+            reviewRequest = request;
+            const isCurrent = () => request.generation === reviewGeneration && request.session === sessionId &&
+                request.identity === currentReviewIdentity() && !logoutInProgress;
+            request.promise = (async () => {
+                try {
+                    const response = await fetch(`${API_BASE}/reviews`, {
+                        headers: { 'X-Session-ID': request.session }, signal: request.controller.signal
+                    });
+                    const payload = await response.json();
+                    if (!isCurrent()) return;
+                    if (!response.ok || payload.code !== 200) throw new Error(typeof payload.detail === 'string' ? payload.detail : payload.message || '審核資料更新失敗，請重試');
+                    if (!validReviewData(payload.data)) throw new Error('審核資料格式不完整，請重試');
+                    reviewData = payload.data; reviewHasData = true; reviewCachedAt = Date.now(); reviewFreshAt = reviewCachedAt;
+                    writePanelCache('reviews', reviewData, request.session);
+                    if (document.getElementById('review-overlay')?.hidden === false) {
+                        renderReviewPanel(); setReviewFeedback();
+                    }
+                } catch (error) {
+                    if (error.name !== 'AbortError' && isCurrent() && document.getElementById('review-overlay')?.hidden === false) {
+                        setReviewFeedback(error.message || '審核資料更新失敗，請重試', true);
+                    }
+                } finally {
+                    if (reviewRequest === request) reviewRequest = null;
                 }
-            } finally {
-                if (reviewRequest === controller) reviewRequest = null;
-            }
+            })();
+            return request.promise;
         }
 
         function refreshReviewPanel() {
-            if (document.getElementById('review-overlay')?.hidden === false) return loadReviewFiles();
+            return loadReviewFiles({ force: true });
         }
+
+        window.prefetchReviewPanel = () => loadReviewFiles();
 
         function openReviewPanel() {
             if (!sessionId || logoutInProgress) return;
+            hydrateReviewData();
             reviewReturnFocus = document.activeElement;
             document.getElementById('review-overlay').hidden = false;
-            document.getElementById('review-close').focus();
+            setReviewFeedback();
             renderReviewPanel();
+            document.getElementById('review-close').focus();
             void loadReviewFiles();
         }
 
         function closeReviewPanel() {
-            ++reviewGeneration;
-            reviewRequest?.abort(); reviewRequest = null;
             document.getElementById('review-overlay').hidden = true;
             if (reviewReturnFocus?.isConnected) reviewReturnFocus.focus();
             reviewReturnFocus = null;
@@ -7698,7 +8477,7 @@
 
         async function submitReviewDecision(file, action) {
             if (reviewMutation || !sessionId || logoutInProgress) return;
-            const requestedSession = sessionId;
+            const requestedSession = sessionId, requestedIdentity = currentReviewIdentity();
             let reason = '';
             if (action === 'reject') {
                 reason = await customPrompt('請填寫退回原因，讓學生知道需要修改的內容：', '', '退回修改');
@@ -7706,8 +8485,11 @@
                 reason = String(reason).trim();
                 if (!reason) { setReviewFeedback('退回時需要填寫原因。', true); return; }
             }
-            if (requestedSession !== sessionId || logoutInProgress || document.getElementById('review-overlay').hidden) return;
-            reviewMutation = true; renderReviewPanel(); setReviewFeedback('正在保存…');
+            if (requestedSession !== sessionId || requestedIdentity !== currentReviewIdentity() || logoutInProgress || document.getElementById('review-overlay').hidden) return;
+            ++reviewGeneration;
+            reviewRequest?.controller.abort(); reviewRequest = null;
+            reviewFreshAt = 0;
+            reviewMutation = true; renderReviewPanel(); setReviewFeedback();
             try {
                 const endpoint = action === 'resubmit' ? 'resubmit' : 'decision';
                 const response = await fetch(`${API_BASE}/reviews/${encodeURIComponent(file.id)}/${endpoint}`, {
@@ -7715,15 +8497,28 @@
                     body: JSON.stringify(action === 'resubmit' ? {} : { action, reason })
                 });
                 const payload = await response.json();
-                if (requestedSession !== sessionId || logoutInProgress) return;
+                if (requestedSession !== sessionId || requestedIdentity !== currentReviewIdentity() || logoutInProgress) return;
                 if (!response.ok || payload.code !== 200) throw new Error(typeof payload.detail === 'string' ? payload.detail : payload.message || '操作失敗，請重試');
+                if (payload.data && payload.data.id === file.id && typeof payload.data.review_status === 'string') {
+                    reviewData = { ...reviewData,
+                        reviewing: reviewData.reviewing.filter(item => item.id !== file.id),
+                        published: reviewData.published.filter(item => item.id !== file.id)
+                    };
+                    reviewData[payload.data.review_status === 'published' ? 'published' : 'reviewing'].unshift(payload.data);
+                    reviewHasData = true; reviewCachedAt = Date.now();
+                    writePanelCache('reviews', reviewData, requestedSession);
+                    renderReviewPanel();
+                }
                 showToast(action === 'approve' ? '已通過並發布' : action === 'reject' ? '已退回修改' : '已重新提交審核', 'success');
-                await Promise.allSettled([loadFiles(), refreshReviewPanel()]);
+                void Promise.allSettled([loadFiles(), loadReviewFiles({ force: true, afterMutation: true })]);
             } catch (error) {
-                if (requestedSession === sessionId && !logoutInProgress) setReviewFeedback(error.message || '操作失敗，請重試', true);
+                if (requestedSession === sessionId && requestedIdentity === currentReviewIdentity() && !logoutInProgress && document.getElementById('review-overlay')?.hidden === false) {
+                    setReviewFeedback(error.message || '操作失敗，請重試', true);
+                }
             } finally {
-                reviewMutation = false;
-                if (requestedSession === sessionId && !logoutInProgress) renderReviewPanel();
+                if (requestedSession === sessionId && requestedIdentity === currentReviewIdentity() && !logoutInProgress) {
+                    reviewMutation = false; renderReviewPanel();
+                }
             }
         }
 
@@ -7731,7 +8526,7 @@
             const overlay = document.getElementById('review-overlay');
             document.getElementById('open-reviews').addEventListener('click', openReviewPanel);
             document.getElementById('review-close').addEventListener('click', closeReviewPanel);
-            document.getElementById('review-refresh').addEventListener('click', () => { if (!reviewMutation) void loadReviewFiles(); });
+            document.getElementById('review-refresh').addEventListener('click', () => { if (!reviewMutation) void loadReviewFiles({ force: true }); });
             overlay.addEventListener('click', event => { if (event.target === overlay) closeReviewPanel(); });
             for (const key of ['reviewing', 'published']) {
                 document.getElementById('review-tab-' + key).addEventListener('click', () => { reviewTab = key; renderReviewPanel(); });
@@ -7870,7 +8665,7 @@
         }
         function showPreviewError(msg) {
             if (previewBody) {
-                previewBody.innerHTML = `<div class="file-preview-error"><div class="file-preview-error-icon">⚠️</div><div class="file-preview-error-msg">${msg}</div></div>`;
+                previewBody.innerHTML = `<div class="file-preview-error"><div class="file-preview-error-icon">⚠️</div><div class="file-preview-error-msg">${escapeHtml(msg)}</div></div>`;
             }
         }
         
@@ -7929,7 +8724,13 @@
                     return;
                 }
                 if (!resp.ok) {
-                    showPreviewError('預覽加載失敗，請稍後重試');
+                    let message = '預覽加載失敗，請稍後重試';
+                    try {
+                        const data = await resp.json();
+                        const detail = data.detail ?? data.error;
+                        if (typeof detail === 'string' && detail.trim()) message = detail.slice(0, 300);
+                    } catch (_) {}
+                    showPreviewError(message);
                     if (previewTitle) previewTitle.textContent = '加載失敗';
                     return;
                 }
@@ -8011,10 +8812,13 @@
                 const blobUrl = URL.createObjectURL(blob);
                 modalPreviewObjectUrl = blobUrl;
                 
-                if (ext === '.pdf') {
+                if (contentType.toLowerCase().includes('application/pdf') || ext === '.pdf') {
                     // PDF: 用 iframe 展示
                     if (previewBody) {
-                        previewBody.innerHTML = `<iframe class="file-preview-iframe" title="${escapeHtml(fileName)} PDF 預覽" src="${blobUrl}"></iframe>`;
+                        const frame = document.createElement('iframe');
+                        frame.className = 'file-preview-iframe'; frame.title = fileName + ' PDF 預覽';
+                        frame.setAttribute('sandbox', 'allow-scripts'); frame.src = blobUrl;
+                        previewBody.replaceChildren(frame);
                     }
                 } else if (['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'].includes(ext)) {
                     // 圖片: 用 img 展示
@@ -8103,17 +8907,15 @@
             triggerDownload(fileId, hasOriginal);
         };
         
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
+
         
         function renderFiles(files) {
             previewFiles.clear();
             files.forEach(file => previewFiles.set(String(file.id), file));
             if (activePreviewFileId && !previewFiles.has(activePreviewFileId)) closeFilePreview();
-            console.log('[renderFiles] 收到檔案列表, 數量:', files.length, '檔案:', files);
+            const activeFile = previewFiles.get(activePreviewFileId);
+            if (activeFile && typeof activeFile.extracted_text === 'string' &&
+                document.querySelector('#file-preview-content .file-preview-text')) renderTextFilePreview(activeFile);
             const allFilesList = document.getElementById('all-files-list');
             
             if (!allFilesList) {
@@ -8142,6 +8944,12 @@
                 });
             }
             console.log('[renderFiles] 類型篩選後數量:', filteredFiles.length);
+
+            const signature = JSON.stringify([sessionId, filterSubject, filterType, filteredFiles.map(file =>
+                [file.id, file.name, file.size, file.uploaded_at, file.audience, file.publisher_role,
+                    file.has_original !== false, !!file.is_truncated, canDeleteFile(file)])]);
+            if (filesRenderSignature === signature && allFilesList.childNodes.length) return;
+            filesRenderSignature = signature;
             
             allFilesList.innerHTML = '';
             
@@ -8551,11 +9359,6 @@
             
             try {
                 console.log('[loadConversationHistory] 發送請求...');
-                const historyList = document.getElementById('history-list');
-                if (historyList && (!conversationHistory || conversationHistory.length === 0)) {
-                    historyList.innerHTML = '<div class="text-center p-4" style="color: var(--text-tertiary); font-size: 0.875rem;">加載中...</div>';
-                }
-                
                 timeoutId = setTimeout(() => {
                     timedOut = true;
                     requestController.abort();
@@ -8571,34 +9374,21 @@
                 console.log('[loadConversationHistory] 響應狀態:', response.status);
                 const data = await response.json();
                 if (requestedSession !== sessionId || generation !== historyLoadGeneration || logoutInProgress) return;
-                console.log('[loadConversationHistory] 返回數據:', data);
                 
                 if (data.code === 200) {
                     conversationHistory = data.data?.conversations || [];
                     console.log('[loadConversationHistory] 對話數量:', conversationHistory.length);
                     renderConversationHistory();
+                    saveStartupCache();
                 } else if (data.code === 401) {
-                    console.warn('[loadConversationHistory] 授權失敗');
+                    invalidateStartupSession(requestedSession);
                 } else {
-                    if (historyList) {
-                        historyList.innerHTML = `<div class="text-center p-4" style="color: var(--text-error); font-size: 0.875rem;">歷史記錄加載失敗<br><button onclick="loadConversationHistory()" class="mt-2 text-blue-500 hover:underline">點擊重試</button></div>`;
-                    }
+                    console.warn('歷史對話背景更新失敗，保留目前內容');
                 }
             } catch (error) {
                 if (requestedSession !== sessionId || generation !== historyLoadGeneration || logoutInProgress) return;
                 if (error.name === 'AbortError' && !timedOut) return;
-                const historyList = document.getElementById('history-list');
-                if (error.name === 'AbortError') {
-                    console.error('[loadConversationHistory] 請求超時（8秒）');
-                    if (historyList) {
-                        historyList.innerHTML = `<div class="text-center p-4" style="color: var(--text-error); font-size: 0.875rem;">加載超時<br><button onclick="loadConversationHistory()" class="mt-2 text-blue-500 hover:underline">點擊重試</button></div>`;
-                    }
-                } else {
-                    console.error('[loadConversationHistory] 加載失敗:', error);
-                    if (historyList) {
-                        historyList.innerHTML = `<div class="text-center p-4" style="color: var(--text-error); font-size: 0.875rem;">網絡錯誤<br><button onclick="loadConversationHistory()" class="mt-2 text-blue-500 hover:underline">點擊重試</button></div>`;
-                    }
-                }
+                console.warn('歷史對話背景更新失敗，保留目前內容:', error);
             } finally {
                 clearTimeout(timeoutId);
                 if (loadHistoryAbortController === requestController) loadHistoryAbortController = null;
@@ -8607,15 +9397,16 @@
         
         function renderConversationHistory() {
             const historyList = document.getElementById('history-list');
+            conversationHistory.sort((a, b) => new Date(b.updated_at || b.created_at || Date.now()) - new Date(a.updated_at || a.created_at || Date.now()));
+            const signature = JSON.stringify([sessionId, currentConversationId, new Date().toDateString(), conversationHistory]);
+            if (historyRenderSignature === signature && historyList.childNodes.length) return;
+            historyRenderSignature = signature;
             historyList.innerHTML = '';
             
             if (conversationHistory.length === 0) {
                 historyList.innerHTML = '<div class="text-center p-4" style="color: var(--text-tertiary); font-size: 0.875rem;">暫無歷史對話</div>';
                 return;
             }
-            
-            // Sort by updated_at descending
-            conversationHistory.sort((a, b) => new Date(b.updated_at || b.created_at || Date.now()) - new Date(a.updated_at || a.created_at || Date.now()));
             
             conversationHistory.forEach(conv => {
                 const convDiv = document.createElement('div');
@@ -8639,7 +9430,7 @@
                 convDiv.innerHTML = `
                     <div class="flex items-start gap-2">
                         <div class="flex-1 min-w-0">
-                            <div class="font-medium text-sm truncate conversation-title" data-id="${conv.id}" style="color: var(--history-text)">${conv.title || '新對話'}</div>
+                            <div class="font-medium text-sm truncate conversation-title" data-id="${conv.id}" style="color: var(--history-text)">${escapeHtml(conv.title || '新對話')}</div>
                             <div class="text-xs" style="color: var(--history-text-secondary)">${timeStr} · ${conv.message_count || 0} 條</div>
                         </div>
                         <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -8716,6 +9507,8 @@
                             // 恢复空对话欢迎标题
                             releaseInputFromBottom();
                             currentConversation = [];
+                            ++conversationViewGeneration;
+                            cacheCurrentConversation();
                         }
                     loadConversationHistory();
                 } else {
@@ -8760,6 +9553,7 @@
         }
         
         async function switchToConversation(convId) {
+            ++conversationViewGeneration;
             if (!sessionId) return;
             
             // 如果在移動端，切換對話時自動收起側邊欄
@@ -8818,7 +9612,7 @@
                             bubble.textContent = msg.content;
                         } else {
                             bubble.classList.add('markdown-content');
-                            bubble.innerHTML = renderWithThinkStyling(msg.content || '', normalizeCitationMap(msg.citation_map ?? msg.citationMap), hasEmptyCitationMap(msg));
+                            renderMessageMarkdown(bubble, msg.content || '', normalizeCitationMap(msg.citation_map ?? msg.citationMap), hasEmptyCitationMap(msg), msg.web_sources);
                         }
                         
                         const meta = document.createElement('div');
@@ -8838,8 +9632,16 @@
                         content: msg.content,
                         is_user: msg.is_user,
                         timestamp: msg.timestamp,
-                        citation_map: msg.citation_map ?? msg.citationMap
+                        citation_map: msg.citation_map ?? msg.citationMap,
+                        skill_id: msg.skill_id,
+                        skill_context: msg.skill_context,
+                        web_sources: msg.web_sources,
+                        web_status: msg.web_status,
+                        rag_status: msg.rag_status,
+                        artifacts: msg.artifacts ?? msg.metadata?.artifacts,
+                        file_task_id: msg.file_task_id ?? msg.metadata?.file_task_id
                     }));
+                    cacheCurrentConversation();
                     
                     requestAnimationFrame(() => {
                         scrollMessagesToBottom('auto');
@@ -8855,6 +9657,7 @@
         // ===================== New Conversation =====================
         newChatBtn.addEventListener('click', async () => {
             if (!sessionId) return;
+            ++conversationViewGeneration;
             
             // 中止當前流式會話
             if (currentStreamController) {
@@ -8887,6 +9690,7 @@
                     // 恢复空对话欢迎标题
                     releaseInputFromBottom();
                     currentConversation = [];
+                    cacheCurrentConversation();
                     loadConversationHistory();
                 }
             } catch (error) {
@@ -8902,6 +9706,8 @@
             const confirmed = await customConfirm('確定要退出登入嗎？', '退出登入');
             if (!confirmed) return;
             logoutInProgress = true;
+            clearStartupCache();
+            clearPanelCaches();
             cancelStartupLoads();
             
             closeFilePreview();
@@ -8933,10 +9739,6 @@
         // ===================== UI Initialization =====================
         function cancelStartupLoads() {
             startupLoadState = null;
-            if (startupFrame !== null) cancelAnimationFrame(startupFrame);
-            if (startupIdle !== null) window.cancelIdleCallback?.(startupIdle);
-            if (startupFallbackTimer !== null) clearTimeout(startupFallbackTimer);
-            startupFrame = startupIdle = startupFallbackTimer = null;
             ++filesLoadGeneration;
             ++historyLoadGeneration;
             loadFilesAbortController?.abort();
@@ -8946,32 +9748,15 @@
 
         function scheduleStartupLoads() {
             const state = startupLoadState;
-            const isCurrent = () => state && startupLoadState === state && sessionId === state.session && !logoutInProgress;
-            if (!isCurrent()) return;
-            startupFrame = requestAnimationFrame(() => {
-                startupFrame = null;
-                if (!isCurrent()) return;
-                startupFrame = requestAnimationFrame(() => {
-                    startupFrame = null;
-                    if (!isCurrent()) return;
-                    const loadLists = () => {
-                        startupIdle = startupFallbackTimer = null;
-                        if (!isCurrent()) return;
-                        const loads = [];
-                        if (!state.filesStarted) loads.push(loadFiles());
-                        if (!state.historyStarted) loads.push(loadConversationHistory());
-                        void Promise.allSettled(loads);
-                    };
-                    if (typeof window.requestIdleCallback === 'function') {
-                        startupIdle = window.requestIdleCallback(loadLists, { timeout: 1500 });
-                    } else {
-                        startupFallbackTimer = setTimeout(loadLists, 0);
-                    }
-                });
-            });
+            if (!state || state.session !== sessionId || logoutInProgress) return;
+            const loads = [];
+            if (!state.filesStarted) loads.push(loadFiles());
+            if (!state.historyStarted) loads.push(loadConversationHistory());
+            void Promise.allSettled(loads);
         }
 
         function initializeUI(sessionData = {}) {
+            void loadTeachingSkills();
             // 仅在初始化时按宽度决定默认值；移动端忽略桌面记忆，不写回偏好。
             const initialWidth = window.innerWidth;
             const preference = readLayoutPreference();
@@ -8985,6 +9770,26 @@
             
             closeFilePreview();
             setFilePanelState(panelOpen);
+
+            restoreCurrentConversation(sessionData);
+            scheduleStartupLoads();
+        }
+
+        function restoreCurrentConversation(sessionData = {}) {
+            const snapshot = sessionData.current_conversation || null;
+            const signature = JSON.stringify([sessionId, currentAccountProfile().account, snapshot?.id,
+                (snapshot?.messages || []).map(message => [message.content, message.is_user, message.timestamp,
+                    message.citation_map ?? message.citationMap, message.skill_id, message.skill_context,
+                    message.web_sources, message.web_status, message.artifacts ?? message.metadata?.artifacts,
+                    message.file_task_id ?? message.metadata?.file_task_id])]);
+            if (renderedConversationSignature === signature &&
+                messagesContainer.querySelectorAll('.message-row').length === (snapshot?.messages || []).length) {
+                cachedCurrentConversation = snapshot;
+                saveStartupCache();
+                return;
+            }
+            ++conversationViewGeneration;
+            pendingMarkdownBubbles.clear();
             
             // Initialize current conversation
             currentConversation = [];
@@ -9020,7 +9825,7 @@
                                     bubble.textContent = msg.content;
                                 } else {
                                     bubble.classList.add('markdown-content');
-                                    bubble.innerHTML = renderWithThinkStyling(msg.content || '', normalizeCitationMap(msg.citation_map ?? msg.citationMap), hasEmptyCitationMap(msg));
+                                    renderMessageMarkdown(bubble, msg.content || '', normalizeCitationMap(msg.citation_map ?? msg.citationMap), hasEmptyCitationMap(msg), msg.web_sources);
                                 }
                                 
                                 const meta = document.createElement('div');
@@ -9040,7 +9845,14 @@
                                 content: msg.content,
                                 is_user: msg.is_user,
                                 timestamp: msg.timestamp,
-                                citation_map: msg.citation_map ?? msg.citationMap
+                                citation_map: msg.citation_map ?? msg.citationMap,
+                                skill_id: msg.skill_id,
+                                skill_context: msg.skill_context,
+                                web_sources: msg.web_sources,
+                                web_status: msg.web_status,
+                                rag_status: msg.rag_status,
+                                artifacts: msg.artifacts ?? msg.metadata?.artifacts,
+                                file_task_id: msg.file_task_id ?? msg.metadata?.file_task_id
                             }));
                             
                             requestAnimationFrame(() => {
@@ -9061,7 +9873,8 @@
                 } catch (error) {
                     console.error('加載當前對話失敗:', error);
                 }
-                scheduleStartupLoads();
+                cacheCurrentConversation();
+                renderedConversationSignature = signature;
             }
         }
         
@@ -9085,32 +9898,57 @@
         }
         
         // ===================== Auto-login =====================
-        window.addEventListener('DOMContentLoaded', () => {
-            if (loginInProgress || startupLoadState?.session === sessionId) return;
+        // 主腳本解析完即還原畫面，無需等待 PDF、Markdown 或網路驗證。
+        queueMicrotask(() => {
+            if (loginInProgress) return;
             const savedSessionId = localStorage.getItem('sessionId');
             if (savedSessionId) {
                 const loginGeneration = loginAttemptGeneration;
                 sessionId = savedSessionId;
+                const cached = readStartupCache();
+                conversationHistory = cached?.history || [];
+                fileCatalog = cached?.files || [];
+                showApp({ current_conversation: cached?.currentConversation || null });
+                const viewGeneration = conversationViewGeneration;
                 fetch(`${API_BASE}/session`, {
                     method: 'GET',
                     headers: { 'X-Session-ID': savedSessionId }
                 })
-                .then(response => response.json())
-                .then(async data => {
+                .then(async response => {
+                    if (response.status === 401 || response.status === 403) {
+                        invalidateStartupSession(savedSessionId);
+                        return null;
+                    }
+                    if (!response.ok) throw new Error('HTTP ' + response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    if (!data) return;
                     if (loginGeneration !== loginAttemptGeneration || sessionId !== savedSessionId || logoutInProgress) return;
                     if (data.code === 200) {
-                        await librariesReady;
-                        if (loginGeneration === loginAttemptGeneration && sessionId === savedSessionId && !logoutInProgress) showApp(data.data);
-                    } else {
-                        localStorage.removeItem('sessionId');
-                        sessionId = null;
+                        const previousAccount = currentAccountProfile().account;
+                        const accountChanged = previousAccount && data.data.user_info?.account && previousAccount !== data.data.user_info.account;
+                        if (data.data.user_info) localStorage.setItem('userInfo', JSON.stringify(data.data.user_info));
+                        updateUserDisplay();
+                        // 背景回應不可蓋掉使用者剛切換、新建或發送的對話。
+                        if (accountChanged) {
+                            clearStartupCache();
+                            clearPanelCaches();
+                            conversationHistory = [];
+                            fileCatalog = [];
+                            renderConversationHistory();
+                            renderFiles(fileCatalog);
+                            schedulePanelPrefetch();
+                        }
+                        if (accountChanged || (viewGeneration === conversationViewGeneration && !isLoading)) restoreCurrentConversation(data.data);
+                        saveStartupCache();
+                    } else if (data.code === 401 || data.code === 403) {
+                        invalidateStartupSession(savedSessionId);
                     }
                 })
                 .catch(error => {
                     if (loginGeneration !== loginAttemptGeneration || sessionId !== savedSessionId || logoutInProgress) return;
-                    console.error('會話驗證失敗:', error);
-                    localStorage.removeItem('sessionId');
-                    sessionId = null;
+                    console.warn('會話背景驗證暫時失敗，保留目前畫面:', error);
                 });
             }
         });
@@ -9302,6 +10140,56 @@
     let metricsGeneration = 0;
     let metricsReturnFocus = null;
     let metricsPreviousOverflow = '';
+    let metricsIdentity = '';
+    let metricsData = { knowledge: null, summary: null };
+    let metricsPending = null;
+    let metricsUpdatedAt = 0;
+    let metricsErrors = {};
+    let metricsRenderedIdentity = '';
+    let metricsRendered = {};
+
+    function metricsHydrate() {
+        const identity = sessionId ? sessionId + ':' + (currentAccountProfile().account || '') : '';
+        if (identity === metricsIdentity) return;
+        ++metricsGeneration;
+        metricsRequest?.abort(); metricsRequest = null; metricsPending = null;
+        metricsIdentity = identity; metricsUpdatedAt = 0; metricsErrors = {};
+        const cached = readPanelCache('metrics');
+        const object = value => value && typeof value === 'object' && !Array.isArray(value) ? value : null;
+        metricsData = { knowledge: object(cached?.knowledge), summary: object(cached?.summary) };
+    }
+
+    function metricsRenderCurrent() {
+        if (!metricsNode('metrics-content')) return;
+        metricsNode('metrics-loading').hidden = true;
+        metricsNode('metrics-content').hidden = false;
+        if (metricsRenderedIdentity !== metricsIdentity) {
+            metricsRenderedIdentity = metricsIdentity; metricsRendered = {};
+        }
+        for (const key of ['knowledge', 'summary']) {
+            const signature = JSON.stringify(metricsData[key]);
+            if (metricsRendered[key] === signature) continue;
+            metricsRendered[key] = signature;
+            if (key === 'knowledge') {
+                metricsRenderKnowledge(metricsData.knowledge);
+                if (!metricsData.knowledge) {
+                    metricsText('metrics-knowledge-state', '尚無已保存數據');
+                    metricsText('metrics-backend', '—');
+                    metricsText('metrics-backend-note', '新的數據會自動顯示');
+                }
+            } else if (metricsData.summary) metricsRenderSummary(metricsData.summary);
+            else {
+                ['metrics-questions', 'metrics-hit-rate', 'metrics-latency'].forEach(id => metricsText(id, '—'));
+                metricsText('metrics-latency-note', 'P50 與 P95 尚無記錄');
+                metricsText('metrics-period', '最近 30 天'); metricsNode('metrics-accumulating').hidden = true;
+                ['metrics-volume-chart', 'metrics-hit-chart', 'metrics-latency-chart', 'metrics-subject-chart'].forEach(id => metricsPlaceholder(id, '尚無已保存的統計', '新的數據會自動顯示。'));
+                metricsText('metrics-data-note', '尚無已保存的統計，新的數據會自動顯示。');
+            }
+        }
+        const errors = Object.values(metricsErrors);
+        metricsNode('metrics-error').hidden = errors.length === 0;
+        if (errors.length) metricsText('metrics-error-message', errors.join('；') + '。已保存的內容仍可查看。');
+    }
 
     function metricsNode(id) { return document.getElementById(id); }
     function metricsFinite(value) {
@@ -9481,51 +10369,48 @@
     }
     async function metricsFetch(path, signal, requestedSession) {
         const response = await fetch(API_BASE + path, { headers: { 'X-Session-ID': requestedSession }, signal });
+        if (response.status === 401) invalidateStartupSession(requestedSession);
         if (!response.ok) throw new Error(response.status === 401 ? '登入已失效，請重新登入。' : '暫時無法取得數據。');
         const payload = await response.json();
         if (payload.code != null && payload.code !== 200) throw new Error('暫時無法取得數據。');
         return payload.data || payload;
     }
-    async function metricsLoad() {
-        const panel = metricsNode('metrics-panel');
-        if (!panel || panel.hidden) return;
-        if (metricsRequest) metricsRequest.abort();
+    function metricsLoad({ force = false } = {}) {
+        metricsHydrate();
+        if (!sessionId || logoutInProgress) return Promise.resolve();
+        if (metricsPending && !force) return metricsPending;
+        if (!force && metricsUpdatedAt && Date.now() - metricsUpdatedAt < 5000) return Promise.resolve();
+        metricsRequest?.abort();
         const generation = ++metricsGeneration, requestedSession = sessionId;
-        metricsNode('metrics-loading').hidden = false; metricsNode('metrics-content').hidden = true; metricsNode('metrics-error').hidden = true;
-        if (!requestedSession) {
-            metricsNode('metrics-loading').hidden = true; metricsNode('metrics-error').hidden = false;
-            metricsText('metrics-error-message', '請先登入，再查看數據面板。'); return;
-        }
+        const requestedIdentity = metricsIdentity, requestedAccount = currentAccountProfile().account;
         const controller = new AbortController(); metricsRequest = controller;
+        const current = () => generation === metricsGeneration && requestedSession === sessionId &&
+            requestedIdentity === metricsIdentity && requestedAccount === currentAccountProfile().account && !logoutInProgress;
         const timeout = setTimeout(() => controller.abort(), 20000);
-        const results = await Promise.allSettled([
-            metricsFetch('/rag/status', controller.signal, requestedSession),
-            metricsFetch('/metrics/summary', controller.signal, requestedSession)
-        ]);
-        clearTimeout(timeout);
-        if (generation !== metricsGeneration || panel.hidden || sessionId !== requestedSession) return;
-        metricsRequest = null; metricsNode('metrics-loading').hidden = true;
-        const knowledge = results[0], summary = results[1], errors = [];
-        if (knowledge.status === 'fulfilled') metricsRenderKnowledge(knowledge.value);
-        else { metricsRenderKnowledge(null); errors.push('知識庫狀態載入失敗'); }
-        if (summary.status === 'fulfilled') metricsRenderSummary(summary.value);
-        else {
-            errors.push('檢索統計載入失敗');
-            ['metrics-questions', 'metrics-hit-rate', 'metrics-latency'].forEach(id => metricsText(id, '—'));
-            metricsText('metrics-latency-note', 'P50 與 P95 暫不可用');
-            metricsText('metrics-period', '最近 30 天'); metricsNode('metrics-accumulating').hidden = true;
-            ['metrics-volume-chart', 'metrics-hit-chart', 'metrics-latency-chart', 'metrics-subject-chart'].forEach(id => metricsPlaceholder(id, '暫時無法取得數據', '請按「重新載入」再試一次。'));
-            metricsText('metrics-data-note', '檢索統計未載入，暫不顯示數據。');
-        }
-        metricsNode('metrics-content').hidden = false;
-        if (errors.length) {
-            metricsNode('metrics-error').hidden = false;
-            metricsText('metrics-error-message', errors.join('；') + '，請重試。');
-        }
+        const parts = [['knowledge', '/rag/status'], ['summary', '/metrics/summary']].map(async ([key, path]) => {
+            try {
+                const data = await metricsFetch(path, controller.signal, requestedSession);
+                if (!current()) return;
+                metricsData[key] = data; delete metricsErrors[key];
+                writePanelCache('metrics', metricsData, requestedSession);
+                metricsRenderCurrent();
+            } catch (error) {
+                if (!current() || (error.name === 'AbortError' && !controller.signal.aborted)) return;
+                metricsErrors[key] = key === 'knowledge' ? '知識庫狀態未能更新' : '檢索統計未能更新';
+                metricsRenderCurrent();
+            }
+        });
+        metricsPending = Promise.allSettled(parts).finally(() => {
+            clearTimeout(timeout);
+            if (current()) {
+                metricsPending = null; metricsRequest = null;
+                if (!Object.keys(metricsErrors).length) metricsUpdatedAt = Date.now();
+            }
+        });
+        return metricsPending;
     }
     function closeMetricsPanel() {
         const panel = metricsNode('metrics-panel'); if (!panel || panel.hidden) return;
-        ++metricsGeneration; if (metricsRequest) metricsRequest.abort(); metricsRequest = null;
         panel.hidden = true; document.body.style.overflow = metricsPreviousOverflow;
         if (metricsReturnFocus && metricsReturnFocus.isConnected) metricsReturnFocus.focus();
     }
@@ -9533,7 +10418,7 @@
         const panel = metricsNode('metrics-panel'); if (!panel || panel.dataset.metricsBound) return;
         panel.dataset.metricsBound = 'true';
         metricsNode('metrics-close').addEventListener('click', closeMetricsPanel);
-        metricsNode('metrics-retry').addEventListener('click', metricsLoad);
+        metricsNode('metrics-retry').addEventListener('click', () => { void metricsLoad({ force: true }); });
         panel.addEventListener('keydown', event => {
             if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeMetricsPanel(); return; }
             if (event.key !== 'Tab') return;
@@ -9546,14 +10431,28 @@
     }
     window.openMetricsPanel = function () {
         metricsBind(); const panel = metricsNode('metrics-panel'); if (!panel) return;
+        if (!sessionId || logoutInProgress) return;
+        metricsHydrate(); metricsRenderCurrent();
         if (panel.hidden) {
             metricsReturnFocus = document.activeElement; metricsPreviousOverflow = document.body.style.overflow;
             panel.hidden = false; document.body.style.overflow = 'hidden';
             metricsNode('metrics-close').focus();
         }
-        metricsLoad();
+        void metricsLoad();
     };
     window.closeMetricsPanel = closeMetricsPanel;
+    window.prefetchMetricsPanel = function () {
+        metricsHydrate(); metricsRenderCurrent();
+        return metricsLoad();
+    };
+    window.clearMetricsPanelCache = function () {
+        closeMetricsPanel();
+        ++metricsGeneration; metricsRequest?.abort();
+        metricsRequest = metricsPending = null; metricsIdentity = ''; metricsUpdatedAt = 0;
+        metricsData = { knowledge: null, summary: null }; metricsErrors = {};
+        metricsRenderedIdentity = ''; metricsRendered = {};
+        metricsRenderCurrent();
+    };
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', metricsBind, { once: true });
     else metricsBind();
 })();
@@ -9604,6 +10503,24 @@
             document.getElementById('file-preview-pane').hidden = true;
             filePanel.classList.remove('is-previewing');
         }
+        function renderTextFilePreview(file) {
+            const content = document.getElementById('file-preview-content');
+            const paragraph = document.createElement('div');
+            paragraph.className = 'file-preview-text';
+            const text = typeof file.extracted_text === 'string' ? file.extracted_text : null;
+            paragraph.textContent = text === null ? '文字預覽會在背景更新，亦可下載原檔。' : text.slice(0, 200000) || '此文件暫無已提取的文字。';
+            content.replaceChildren(paragraph);
+            if (text === null) {
+                const retry = document.createElement('button');
+                retry.type = 'button'; retry.className = 'source-view-btn ghost'; retry.textContent = '重新讀取';
+                retry.addEventListener('click', () => { void loadFiles(); });
+                content.appendChild(retry);
+            } else if (text.length > 200000) {
+                const note = document.createElement('p'); note.className = 'pdf-page-note';
+                note.textContent = '文本較長，目前顯示前 200000 字，完整內容可下載查看。'; content.prepend(note);
+            }
+        }
+
         async function openFilePreview(fileOrId) {
             const file = typeof fileOrId === 'object' ? fileOrId : previewFiles.get(String(fileOrId));
             if (!file || !sessionId || logoutInProgress) return;
@@ -9639,6 +10556,7 @@
                     const iframe = document.createElement('iframe');
                     iframe.className = 'file-preview-native-pdf';
                     iframe.title = (file.name || 'PDF') + ' PDF 預覽';
+                    iframe.setAttribute('sandbox', 'allow-scripts');
                     iframe.src = filePreviewObjectUrl;
                     content.classList.add('is-native-pdf');
                     content.replaceChildren(iframe);
@@ -9657,15 +10575,7 @@
                     img.onerror = () => { if (generation === filePreviewGeneration && sessionId === requestedSession) content.textContent = '图片未能显示，请重试。'; };
                     content.replaceChildren(img);
                 } else {
-                    const text = typeof file.extracted_text === 'string' ? file.extracted_text : '';
-                    const paragraph = document.createElement('div');
-                    paragraph.className = 'file-preview-text';
-                    paragraph.textContent = text.slice(0, 200000) || '此文件暂无已提取的文字。';
-                    content.replaceChildren(paragraph);
-                    if (text.length > 200000) {
-                        const note = document.createElement('p'); note.className = 'pdf-page-note';
-                        note.textContent = '文本较长，当前显示前 200000 字，完整内容可下载查看。'; content.prepend(note);
-                    }
+                    renderTextFilePreview(file);
                 }
             } catch (error) {
                 if (generation !== filePreviewGeneration || sessionId !== requestedSession || logoutInProgress || error.name === 'AbortError') return;
@@ -9674,7 +10584,7 @@
                 if (generation === filePreviewGeneration) filePreviewRequest = null;
             }
         }
-        document.addEventListener('DOMContentLoaded', () => {
+        (() => {
             document.getElementById('file-preview-back').addEventListener('click', closeFilePreview);
             document.getElementById('file-preview-pane-fullscreen').addEventListener('click', () => {
                 setFilePreviewFullscreen(!filePanel.classList.contains('is-preview-fullscreen'), true);
@@ -9687,7 +10597,7 @@
                 else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
             });
             window.addEventListener('pagehide', closeFilePreview);
-        });
+        })();
 
     </script>
     
@@ -9939,18 +10849,16 @@
     </header>
     <div class="metrics-panel-scroll">
         <div class="metrics-panel-container">
-            <div id="metrics-loading" class="metrics-state" role="status" aria-live="polite">
-                <span class="metrics-spinner" aria-hidden="true"></span>正在載入數據…
-            </div>
+            <div id="metrics-loading" hidden aria-hidden="true"></div>
             <div id="metrics-error" class="metrics-error" role="alert" hidden>
                 <p id="metrics-error-message"></p>
                 <button type="button" id="metrics-retry" class="metrics-retry-btn">重新載入</button>
             </div>
-            <div id="metrics-content" hidden>
+            <div id="metrics-content">
                 <section aria-labelledby="metrics-knowledge-heading">
                     <div class="metrics-section-heading">
                         <h2 id="metrics-knowledge-heading">知識庫</h2>
-                        <span id="metrics-knowledge-state" class="metrics-status-pill">正在檢查</span>
+                        <span id="metrics-knowledge-state" class="metrics-status-pill">尚無已保存數據</span>
                     </div>
                     <div class="metrics-card-grid">
                         <article class="metrics-value-card">

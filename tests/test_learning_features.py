@@ -13,6 +13,7 @@ from datetime import datetime
 from pathlib import Path
 from unittest.mock import patch
 
+import tests  # Establish synthetic-only storage before application imports.
 from services.document_files import display_upload_name, stable_upload_id
 from services.metrics_summary import build_metrics_summary, build_retrieval_record, summarize_metric_records
 from services.quiz_service import (
@@ -86,10 +87,10 @@ def metric_row(request_id: str, latency: float | None = 100.0, **updates: object
 class DocumentIdentityTests(unittest.TestCase):
     def test_valid_uuid_prefix_is_preserved_and_display_name_is_unwrapped(self) -> None:
         fixtures = [
-            ("4F54C50F-51E4-4715-8291-3461ED570144_原电池.pdf",
-             "4f54c50f-51e4-4715-8291-3461ed570144", "原电池.pdf"),
-            ("4f54c50f-51e4-4715-8291-3461ed570144_lesson_with_underscores.pdf",
-             "4f54c50f-51e4-4715-8291-3461ed570144", "lesson_with_underscores.pdf"),
+            ("AB12CD34-1234-4123-8123-ABCDEF123456_原电池.pdf",
+             "ab12cd34-1234-4123-8123-abcdef123456", "原电池.pdf"),
+            ("ab12cd34-1234-4123-8123-abcdef123456_lesson_with_underscores.pdf",
+             "ab12cd34-1234-4123-8123-abcdef123456", "lesson_with_underscores.pdf"),
         ]
         for stored_name, expected_id, expected_display_name in fixtures:
             for name in [stored_name, str(Path("arbitrary-parent") / stored_name)]:
@@ -104,8 +105,8 @@ class DocumentIdentityTests(unittest.TestCase):
             ("未注册的数学练习.pdf", "upload_45dd57557adf985567bc"),
             ("plain_name.pdf", "upload_64d88e8557b7dc9ce2e5"),
             ("invalid_uuid_lesson.pdf", "upload_95f561d8c42e901f5d4c"),
-            ("59E58A8F-AA69-0C45-8232-B1C16A7AF7F9_原电池.pdf", "upload_a833a7ffc99cbb96a204"),
-            ("B4DF86DA-2F17-44D9-7D88-41F95212E36B_原电池.pdf", "upload_085cb568048c696baa8e"),
+            ("AB12CD34-1234-0123-8123-ABCDEF123456_原电池.pdf", "upload_76bc8dea1bbc6b9fbd2a"),
+            ("AB12CD34-1234-4123-7123-ABCDEF123456_原电池.pdf", "upload_1cecf6e58db2d3000323"),
         ]
         for stored_name, expected_id in fixtures:
             for name in [stored_name, str(Path("arbitrary-parent") / stored_name)]:
@@ -314,7 +315,8 @@ class QuizGenerationTests(unittest.IsolatedAsyncioTestCase):
                 return response_body
         class OfflineClient:
             def __init__(self, **kwargs: object):
-                pass
+                if kwargs.get("verify") is not True:
+                    raise AssertionError("Quiz transport must verify TLS certificates")
             async def __aenter__(self) -> "OfflineClient":
                 return self
             async def __aexit__(self, *args: object) -> None:
@@ -328,6 +330,13 @@ class QuizGenerationTests(unittest.IsolatedAsyncioTestCase):
                                                      "DEEPSEEK_API_KEY": "dummy-test-value"},
                                          store=MaterialStore([source_chunk("one")]))
         self.assertEqual(len(calls), 1)
+        from config.deepseek import DEEPSEEK_MODEL
+        self.assertEqual(calls[0]["json"]["model"], DEEPSEEK_MODEL)
+        self.assertEqual(calls[0]["json"]["thinking"], {"type": "disabled"})
+        self.assertEqual(calls[0]["json"]["temperature"], .1)
+        self.assertGreaterEqual(calls[0]["json"]["max_tokens"], 2_000)
+        self.assertLessEqual(calls[0]["json"]["max_tokens"], 16_000)
+        self.assertIn("JSON字段格式示例", calls[0]["json"]["messages"][0]["content"])
         self.assertFalse(calls[0]["json"]["stream"])
         self.assertEqual(calls[0]["json"]["response_format"], {"type": "json_object"})
         self.assertLessEqual(result["source_chars"], MAX_MATERIAL_CHARS)

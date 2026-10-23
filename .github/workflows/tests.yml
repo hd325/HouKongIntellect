@@ -19,6 +19,9 @@ jobs:
       TENCENT_SECRET_ID: ""
       TENCENT_SECRET_KEY: ""
       SERPER_API_KEY: ""
+      HUAWEI_AK: ""
+      HUAWEI_SK: ""
+      HUAWEI_PROJECT_ID: ""
       EMBEDDING_BACKEND: tfidf
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -30,8 +33,19 @@ jobs:
         run: python -m pip install -r requirements-dev.txt
       - name: Check dependency consistency
         run: python -m pip check
+      - name: Verify core install without optional file tools
+        env:
+          HOUKONG_DATA_DIR: ${{ runner.temp }}/houkong-core-smoke
+          HOUKONG_CHROMA_DIR: ${{ runner.temp }}/houkong-core-chroma
+          ENABLE_FILE_AGENT: "false"
+        run: python -c "import main; from fastapi.testclient import TestClient; c=TestClient(main.app); assert c.get('/').status_code==200; assert c.get('/api/health').status_code==200; assert c.get('/api/files').status_code==401"
+      - name: Install and check optional file tools
+        run: |
+          python -m pip install -r requirements-file-agent.txt
+          python -m pip check
       - name: Run isolated regression tests
         env:
           HOUKONG_DATA_DIR: ${{ runner.temp }}/houkong-test-data
           HOUKONG_CHROMA_DIR: ${{ runner.temp }}/houkong-test-chroma
+          ENABLE_FILE_AGENT: "true"
         run: python -m unittest discover -s tests -v

@@ -15,6 +15,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import asyncio
 import copy
 import hashlib
 import io
@@ -34,10 +35,10 @@ if str(ROOT) not in sys.path:
 from services.review_policy import is_published_record
 from config.settings import DATA_DIR
 
-FILES_DATA_PATH = DATA_DIR / "files_data.json"
-CONVERSATIONS_DATA_PATH = DATA_DIR / "conversations_data.json"
-UPLOADS_DIR = DATA_DIR / "uploads"
-OCR_CACHE_PATH = DATA_DIR / ".reindex_ocr_cache.json"
+FILES_DATA_PATH = Path(DATA_DIR) / 'files_data.json'
+CONVERSATIONS_DATA_PATH = Path(DATA_DIR) / 'conversations_data.json'
+UPLOADS_DIR = Path(DATA_DIR) / 'uploads'
+OCR_CACHE_PATH = Path(DATA_DIR) / '.reindex_ocr_cache.json'
 ORPHAN_DOCUMENT_IDS = ()
 FAILED_EXTRACTION_STATUSES = {"empty", "failed"}
 _STORED_UPLOAD_RE = re.compile(
@@ -165,10 +166,12 @@ def load_catalog_data(
     conversations_path = conversations_path or path.parent / CONVERSATIONS_DATA_PATH.name
     metadata: dict[str, dict[str, object]] = {}
     file_contents: dict[str, object] = {}
+    deleted_ids: set[str] = set()
     for source in (path, conversations_path):
         data = _load_json(source, {})
         if not isinstance(data, dict):
             continue
+        deleted_ids.update(str(item) for item in data.get("deleted_document_ids", []))
         for item in _catalog_records(data):
             if item.get("id"):
                 document_id = str(item["id"])
@@ -176,6 +179,9 @@ def load_catalog_data(
         contents = data.get("file_contents", {})
         if isinstance(contents, dict):
             file_contents.update({str(key): value for key, value in contents.items()})
+    for document_id in deleted_ids:
+        metadata[document_id] = {"id": document_id, "review_status": "deleted"}
+        file_contents.pop(document_id, None)
     return metadata, file_contents
 
 
@@ -244,9 +250,8 @@ def load_upload_documents(
         return [], [], 0
 
     if extractor is None:
-        from main import extract_text_from_file
-
-        extractor = extract_text_from_file
+        from services.parser_runtime import parse_upload_isolated
+        extractor = lambda file: asyncio.run(parse_upload_isolated(file))
 
     if metadata is None:
         metadata, _ = load_catalog_data()
@@ -268,6 +273,9 @@ def load_upload_documents(
     for path in paths:
         document_id = stable_upload_id(path.name)
         meta = metadata.get(document_id, {})
+        if path.stat().st_size > 50 * 1024 * 1024:
+            skipped.append(f"uploads:{path.name} [size-limit]")
+            continue
         if not is_published_record(meta):
             skipped.append(f"uploads:{path.name} [{meta.get('review_status')}]")
             continue

@@ -4,7 +4,7 @@
 职责：将「带页码标记」的 OCR/文本提取结果切分为适合向量检索的语义文本块。
 
 输入约定：
-- PDF 经腾讯云 OCR（recognize_pdf）后，每页以 ``--- 第N页 ---`` 分隔；
+- PDF 经华为云 OCR（recognize_pdf）后，每页以 ``--- 第N页 ---`` 分隔；
 - 图片 OCR 结果由调用方统一包裹为 ``--- 第1页 ---``（单页）；
 - 纯文本 / Office 文档无页码标记时，整体视为第 1 页。
 
@@ -31,6 +31,9 @@ import logging
 import re
 import uuid
 from typing import Dict, List, Optional
+from services.resource_limits import ParserLimitError
+
+MAX_DOCUMENT_CHUNKS = 512
 
 logger = logging.getLogger("chunker")
 
@@ -81,6 +84,8 @@ class PageAwareChunker:
         """
         if not raw_text or not raw_text.strip():
             return []
+        if len(raw_text) > 1_000_000:
+            raise ParserLimitError("索引文字最多 100 萬字元，請分拆資料。")
 
         if document_id is None:
             document_id = f"DOC_{uuid.uuid4().hex[:16].upper()}"
@@ -97,6 +102,8 @@ class PageAwareChunker:
                 content = content.strip()
                 if not content:
                     continue
+                if len(chunks) >= MAX_DOCUMENT_CHUNKS:
+                    raise ParserLimitError("文件索引最多 512 個段落塊，請分拆資料。")
                 chunk_id = f"{document_id}_P{page_no}_C{len(chunks) + 1:03d}"
                 chunks.append(
                     {

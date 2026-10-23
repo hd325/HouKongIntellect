@@ -22,6 +22,20 @@ CONFIG_KEYS = (
 
 
 class PublicConfigurationTests(unittest.TestCase):
+    def test_suite_import_ignores_existing_private_storage_and_provider_key(self):
+        with tempfile.TemporaryDirectory(prefix="pretend_private_config_") as name:
+            private = Path(name)
+            (private / "accounts.json").write_text("must not be loaded", encoding="utf-8")
+            code = ("import os; previous=os.environ['HOUKONG_DATA_DIR']; import tests; "
+                    "import main; from config import settings; "
+                    "assert str(settings.DATA_DIR)!=previous; "
+                    "assert not settings.DEEPSEEK_API_KEY; assert main.VALID_ACCOUNTS=={}")
+            result = subprocess.run([sys.executable, "-c", code], cwd=ROOT,
+                env=os.environ | {"HOUKONG_DATA_DIR": str(private), "DEEPSEEK_API_KEY": "synthetic-key-must-be-cleared"},
+                capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual((private / "accounts.json").read_text(encoding="utf-8"), "must not be loaded")
+
     def setUp(self):
         self.folder = tempfile.TemporaryDirectory(prefix="houkong_config_")
         # Windows runners may expose TEMP through an 8.3 alias. Compare the

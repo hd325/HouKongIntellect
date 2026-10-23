@@ -6,6 +6,7 @@
 
 | 本機檔案 | 來源與用途 | 授權文件 |
 | --- | --- | --- |
+| `dompurify.min.js` | [DOMPurify 3.4.17](https://github.com/cure53/DOMPurify/tree/3.4.17)，清理 Markdown 產生的 HTML；下載時核對 npm tarball 的 SHA-512 integrity。 | Apache-2.0 或 MPL-2.0：[本機副本](licenses/dompurify-LICENSE.txt)。 |
 | `marked.js` | [Marked](https://github.com/markedjs/marked)，Markdown 解析。Copyright 2018+ MarkedJS；2011–2018 Christopher Jeffrey。 | [上游授權](https://github.com/markedjs/marked/blob/master/LICENSE) / [本機副本](licenses/marked-LICENSE.txt)。Marked 採 MIT，上游文件另保留 Markdown 來源聲明。 |
 | `tailwindcss.js` | [Tailwind CSS](https://github.com/tailwindlabs/tailwindcss)，瀏覽器樣式產生。Copyright Tailwind Labs, Inc. | MIT：[上游授權](https://github.com/tailwindlabs/tailwindcss/blob/main/LICENSE) / [本機副本](licenses/tailwindcss-LICENSE.txt)。 |
 | `pdf.min.js`、`pdf.worker.min.js` | [Mozilla PDF.js 3.11.174](https://github.com/mozilla/pdf.js/tree/v3.11.174)，PDF 預覽。Copyright 2023 Mozilla Foundation。 | Apache-2.0：[上游授權](https://github.com/mozilla/pdf.js/blob/v3.11.174/LICENSE) / [本機副本](licenses/pdfjs-LICENSE.txt)。保留原始檔頭聲明。 |
@@ -34,6 +35,6 @@ Marked 和 Tailwind 的現有瀏覽器檔案沒有可核實的完整套件版本
 
 ## Python 套件與模型
 
-核心、開發及本地模型依賴分別由 `requirements.txt`、`requirements-dev.txt` 和 `requirements-local.txt` 安裝，套件本身不隨倉庫重新打包。各套件仍適用自己的授權及通知。
+核心、開發、文件編輯及本地模型依賴分別由 `requirements.txt`、`requirements-dev.txt`、`requirements-file-agent.txt` 和 `requirements-local.txt` 安裝，套件本身不隨倉庫重新打包。各套件仍適用自己的授權及通知。
 
 可選本地模型預設為 [shibing624/text2vec-base-chinese](https://huggingface.co/shibing624/text2vec-base-chinese)，由部署者另行下載。使用前請閱讀該版本的模型卡與授權；模型權重不包含在本倉庫內。

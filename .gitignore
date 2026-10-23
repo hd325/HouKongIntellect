@@ -49,6 +49,14 @@ build/
 *.swp
 *.zip
 node_modules/
+deliverables/
+backups/
+*.mp4
+*.mov
+*.wav
+*.mp3
+corpus.json
+teacher-profile.json
 
 # Local editors and operating system metadata
 .idea/
