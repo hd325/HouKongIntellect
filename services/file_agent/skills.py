@@ -63,8 +63,9 @@ _EDIT_FIELDS = {
     "pdf": {"replace_text": "page old new font_size", "add_text": "page text x y right bottom font_size",
             "delete_pages": "pages", "add_image": "page file_id rect"},
 }
-_PDF_FONT = next((p for p in (Path("C:/Windows/Fonts/msyh.ttc"), Path("C:/Windows/Fonts/simsun.ttc"),
-                               Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")) if p.is_file()), None)
+# Only prefer fonts with CJK coverage; otherwise use PyMuPDF's bundled china-s.
+_PDF_FONT = next((p for p in (Path("C:/Windows/Fonts/msyh.ttc"),
+                               Path("C:/Windows/Fonts/simsun.ttc")) if p.is_file()), None)
 
 
 def _pdf_font(page, unique=False):
